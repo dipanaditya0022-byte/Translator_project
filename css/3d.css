@@ -1,0 +1,324 @@
+/* ============================================
+   3D EFFECTS & PERSPECTIVE TRANSFORMS
+   ============================================ */
+
+/* ── 3D GLOBE WIDGET ── */
+.globe-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 220px;
+  perspective: 600px;
+}
+
+.globe {
+  width: 160px;
+  height: 160px;
+  position: relative;
+  transform-style: preserve-3d;
+  animation: globeRotate 12s linear infinite;
+}
+
+@keyframes globeRotate {
+  from { transform: rotateY(0deg) rotateX(15deg); }
+  to   { transform: rotateY(360deg) rotateX(15deg); }
+}
+
+.globe-sphere {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 35% 35%, rgba(0,245,255,0.25) 0%, transparent 50%),
+    radial-gradient(circle at 65% 65%, rgba(0,128,255,0.15) 0%, transparent 50%),
+    radial-gradient(ellipse at center, #061828 0%, #020810 100%);
+  border: 1px solid rgba(0,245,255,0.3);
+  box-shadow:
+    0 0 40px rgba(0,245,255,0.2),
+    0 0 80px rgba(0,128,255,0.1),
+    inset 0 0 30px rgba(0,0,0,0.5);
+  overflow: hidden;
+}
+
+/* Latitude lines */
+.globe-sphere::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent 0px,
+      transparent 18px,
+      rgba(0,245,255,0.08) 18px,
+      rgba(0,245,255,0.08) 19px
+    );
+}
+
+/* Longitude lines via box */
+.globe-sphere::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      transparent 0px,
+      transparent 18px,
+      rgba(0,245,255,0.05) 18px,
+      rgba(0,245,255,0.05) 19px
+    );
+}
+
+.globe-ring {
+  position: absolute;
+  inset: -16px;
+  border-radius: 50%;
+  border: 2px solid rgba(0,245,255,0.15);
+  transform: rotateX(75deg);
+  box-shadow: 0 0 15px rgba(0,245,255,0.1);
+}
+
+.globe-ring-2 {
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  border: 1px solid rgba(0,128,255,0.12);
+  transform: rotateX(75deg) rotateZ(45deg);
+}
+
+/* Glowing dots on globe (cities) */
+.globe-dot {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  background: var(--neon-cyan);
+  border-radius: 50%;
+  box-shadow: 0 0 8px var(--neon-cyan), 0 0 16px rgba(0,245,255,0.5);
+  animation: dotPulse 2s ease-in-out infinite;
+}
+
+.globe-dot:nth-child(1) { top: 35%; left: 25%; animation-delay: 0s; }
+.globe-dot:nth-child(2) { top: 55%; left: 55%; animation-delay: 0.4s; background: var(--neon-green); box-shadow: 0 0 8px var(--neon-green); }
+.globe-dot:nth-child(3) { top: 30%; left: 60%; animation-delay: 0.8s; background: var(--neon-gold); box-shadow: 0 0 8px var(--neon-gold); }
+.globe-dot:nth-child(4) { top: 65%; left: 30%; animation-delay: 1.2s; background: var(--neon-pink); box-shadow: 0 0 8px var(--neon-pink); }
+.globe-dot:nth-child(5) { top: 45%; left: 70%; animation-delay: 1.6s; }
+
+@keyframes dotPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%       { transform: scale(1.8); opacity: 0.6; }
+}
+
+/* Connection arc between dots */
+.globe-arc {
+  position: absolute;
+  top: 35%;
+  left: 25%;
+  width: 100px;
+  height: 50px;
+  border-top: 1px solid rgba(0,245,255,0.3);
+  border-radius: 50%;
+  transform-origin: left center;
+  animation: arcFade 3s ease-in-out infinite;
+}
+
+@keyframes arcFade {
+  0%, 100% { opacity: 0; }
+  50%       { opacity: 1; }
+}
+
+/* ── 3D CARD HOVER ── */
+.card-3d {
+  transform-style: preserve-3d;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  will-change: transform;
+}
+
+.card-3d:hover {
+  transform: perspective(800px) rotateX(-4deg) rotateY(4deg) translateZ(10px);
+}
+
+/* ── HOLOGRAPHIC BORDER EFFECT ── */
+.holo-border {
+  position: relative;
+}
+
+.holo-border::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: linear-gradient(
+    var(--holo-angle, 135deg),
+    var(--neon-cyan),
+    var(--neon-blue),
+    var(--neon-purple),
+    var(--neon-pink),
+    var(--neon-cyan)
+  );
+  background-size: 300% 300%;
+  opacity: 0;
+  z-index: -1;
+  transition: opacity 0.3s;
+  animation: holoShift 4s linear infinite;
+}
+
+.holo-border:hover::after {
+  opacity: 0.6;
+}
+
+@keyframes holoShift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* ── SCAN LINE OVERLAY ── */
+.scanlines {
+  position: relative;
+  overflow: hidden;
+}
+
+.scanlines::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.07) 2px,
+    rgba(0, 0, 0, 0.07) 4px
+  );
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* ── GLITCH TEXT EFFECT ── */
+.glitch {
+  position: relative;
+  color: var(--neon-cyan);
+}
+
+.glitch::before,
+.glitch::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0; left: 0;
+  color: var(--neon-cyan);
+  width: 100%;
+  height: 100%;
+}
+
+.glitch::before {
+  animation: glitch1 4s infinite linear;
+  clip-path: polygon(0 0, 100% 0, 100% 33%, 0 33%);
+  transform: translate(-2px, -2px);
+  color: var(--neon-pink);
+}
+
+.glitch::after {
+  animation: glitch2 4s infinite linear;
+  clip-path: polygon(0 66%, 100% 66%, 100% 100%, 0 100%);
+  transform: translate(2px, 2px);
+  color: var(--neon-blue);
+}
+
+@keyframes glitch1 {
+  0%, 95%, 100% { transform: translate(0); clip-path: polygon(0 0, 100% 0, 100% 33%, 0 33%); }
+  96%            { transform: translate(-3px, 1px); }
+  97%            { transform: translate(2px, -1px); clip-path: polygon(0 0, 100% 0, 100% 45%, 0 45%); }
+  98%            { transform: translate(-1px, 2px); }
+}
+
+@keyframes glitch2 {
+  0%, 95%, 100% { transform: translate(0); clip-path: polygon(0 66%, 100% 66%, 100% 100%, 0 100%); }
+  96%            { transform: translate(3px, -1px); }
+  97%            { transform: translate(-2px, 1px); clip-path: polygon(0 55%, 100% 55%, 100% 100%, 0 100%); }
+  98%            { transform: translate(1px, -2px); }
+}
+
+/* ── 3D ROTATING CUBE LOADER ── */
+.cube-loader {
+  width: 30px;
+  height: 30px;
+  position: relative;
+  transform-style: preserve-3d;
+  animation: cubeRotate 2s infinite linear;
+}
+
+@keyframes cubeRotate {
+  0%   { transform: rotateX(0deg) rotateY(0deg); }
+  100% { transform: rotateX(360deg) rotateY(360deg); }
+}
+
+.cube-face {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,245,255,0.05);
+  border: 1px solid rgba(0,245,255,0.4);
+  backface-visibility: visible;
+}
+
+.cube-face.front  { transform: translateZ(15px); }
+.cube-face.back   { transform: rotateY(180deg) translateZ(15px); }
+.cube-face.left   { transform: rotateY(-90deg) translateZ(15px); }
+.cube-face.right  { transform: rotateY(90deg) translateZ(15px); }
+.cube-face.top    { transform: rotateX(90deg) translateZ(15px); }
+.cube-face.bottom { transform: rotateX(-90deg) translateZ(15px); }
+
+/* ── NEON GLOW PULSE ── */
+.pulse-glow {
+  animation: neonPulse 2.5s ease-in-out infinite;
+}
+
+@keyframes neonPulse {
+  0%, 100% {
+    text-shadow: 0 0 5px var(--neon-cyan), 0 0 10px var(--neon-cyan);
+  }
+  50% {
+    text-shadow:
+      0 0 10px var(--neon-cyan),
+      0 0 25px var(--neon-cyan),
+      0 0 50px var(--neon-blue);
+  }
+}
+
+/* ── TYPING CURSOR ── */
+.typing-cursor::after {
+  content: '|';
+  color: var(--neon-cyan);
+  animation: cursorBlink 0.7s step-end infinite;
+  margin-left: 2px;
+}
+
+@keyframes cursorBlink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+
+/* ── SHIMMER LOADING ── */
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,0.03) 25%,
+    rgba(0,245,255,0.08) 50%,
+    rgba(255,255,255,0.03) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* ── HEX GRID BACKGROUND PATTERN ── */
+.hex-bg {
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='100'%3E%3Cpath d='M28 66L0 50V16L28 0l28 16v34L28 66zM28 100L0 84V50l28-16 28 16v34L28 100z' fill='none' stroke='rgba(0,245,255,0.04)' stroke-width='1'/%3E%3C/svg%3E");
+}
