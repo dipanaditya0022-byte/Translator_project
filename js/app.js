@@ -20,7 +20,6 @@ class TranslatorDashboard {
     this.init();
   }
 
-  /* ── INIT ── */
   init() {
     document.addEventListener("DOMContentLoaded", () => {
       this.cacheElements();
@@ -78,12 +77,10 @@ class TranslatorDashboard {
       ) || AZURE_CONFIG.supportedLanguages[0];
   }
 
-  /* ── INIT TRANSLATOR ── */
   initTranslator() {
     this.translator = new AzureTranslator(AZURE_CONFIG);
   }
 
-  /* ── CHECK CREDENTIALS ON PAGE LOAD ── */
   checkCredentialsOnLoad() {
     const key = localStorage.getItem("azure_key") || "";
     const region = localStorage.getItem("azure_region") || "";
@@ -97,8 +94,9 @@ class TranslatorDashboard {
     }
   }
 
-  /* ── INJECT SETTINGS MODAL INTO DOM ── */
   injectSettingsModal() {
+    if (document.getElementById("settingsModal")) return;
+
     const modal = document.createElement("div");
     modal.id = "settingsModal";
     modal.innerHTML = `
@@ -111,7 +109,7 @@ class TranslatorDashboard {
 
           <div class="settings-body">
             <div class="settings-info">
-              Azure Portal → transl091 → Keys and Endpoint se copy karein
+              Azure Portal → Translator → Keys and Endpoint se copy karein
             </div>
 
             <div class="settings-field">
@@ -121,7 +119,7 @@ class TranslatorDashboard {
                   type="password"
                   id="settingsKey"
                   class="settings-input"
-                  placeholder="4AB2zu8jo... (Key 1 ya Key 2)"
+                  placeholder="Paste Key 1 or Key 2"
                   autocomplete="off"
                   spellcheck="false"
                 />
@@ -302,16 +300,6 @@ class TranslatorDashboard {
         box-shadow: 0 0 20px rgba(0,245,255,0.25);
         transform: translateY(-1px);
       }
-
-      .key-saved-badge {
-        display: inline-flex; align-items: center; gap: 4px;
-        font-family: 'Share Tech Mono', monospace;
-        font-size: 0.62rem; color: #00ff88;
-        background: rgba(0,255,136,0.1);
-        border: 1px solid rgba(0,255,136,0.25);
-        border-radius: 4px; padding: 2px 8px;
-        letter-spacing: 1px;
-      }
     `;
     document.head.appendChild(style);
 
@@ -358,12 +346,21 @@ class TranslatorDashboard {
   }
 
   showSettingsModal() {
-    document.getElementById("settingsModal").classList.add("open");
-    setTimeout(() => document.getElementById("settingsKey").focus(), 100);
+    const modal = document.getElementById("settingsModal");
+    const keyEl = document.getElementById("settingsKey");
+    const regionEl = document.getElementById("settingsRegion");
+
+    if (!modal || !keyEl || !regionEl) return;
+
+    keyEl.value = localStorage.getItem("azure_key") || "";
+    regionEl.value = localStorage.getItem("azure_region") || "";
+
+    modal.classList.add("open");
+    setTimeout(() => keyEl.focus(), 100);
   }
 
   hideSettingsModal() {
-    document.getElementById("settingsModal").classList.remove("open");
+    document.getElementById("settingsModal")?.classList.remove("open");
   }
 
   saveSettings() {
@@ -437,13 +434,11 @@ class TranslatorDashboard {
         const msg = data?.error?.message || "Invalid credentials or wrong region";
         status.textContent = `✗ Error ${response.status}: ${msg}`;
         status.className = "settings-status error";
-
         this.updateStatus(false, "Azure auth failed — check key/region");
       }
     } catch (e) {
       status.textContent = "✗ Proxy server not running. Start: node proxy-server.js";
       status.className = "settings-status error";
-
       this.updateStatus(false, "Proxy server offline");
     }
   }
@@ -454,15 +449,9 @@ class TranslatorDashboard {
 
     settingsBtn.innerHTML = "⚙";
     settingsBtn.title = connected ? "Settings (Connected ✓)" : "Settings";
-
-    if (connected) {
-      settingsBtn.style.color = "#00ff88";
-    } else {
-      settingsBtn.style.color = "";
-    }
+    settingsBtn.style.color = connected ? "#00ff88" : "";
   }
 
-  /* ── RENDER DROPDOWNS ── */
   renderLanguageDropdowns() {
     const langs = AZURE_CONFIG.supportedLanguages;
 
@@ -512,7 +501,6 @@ class TranslatorDashboard {
     }
   }
 
-  /* ── BIND EVENTS ── */
   bindEvents() {
     if (this.els.sourceInput) {
       this.els.sourceInput.addEventListener("input", () => {
@@ -541,6 +529,7 @@ class TranslatorDashboard {
 
     if (this.els.sourceLangBtn) {
       this.els.sourceLangBtn.addEventListener("click", (e) => {
+        e.preventDefault();
         e.stopPropagation();
         this.toggleDropdown("source");
       });
@@ -548,48 +537,62 @@ class TranslatorDashboard {
 
     if (this.els.targetLangBtn) {
       this.els.targetLangBtn.addEventListener("click", (e) => {
+        e.preventDefault();
         e.stopPropagation();
         this.toggleDropdown("target");
       });
     }
 
-    document.addEventListener("click", (e) => {
-      const opt = e.target.closest(".lang-option");
+    document.addEventListener(
+      "click",
+      (e) => {
+        const opt = e.target.closest(".lang-option");
 
-      if (opt) {
-        e.stopPropagation();
+        if (opt) {
+          e.preventDefault();
+          e.stopPropagation();
 
-        const pane = opt.dataset.pane;
-        const lang = {
-          code: opt.dataset.code,
-          name: opt.dataset.name,
-          flag: opt.dataset.flag,
-        };
+          const pane = opt.dataset.pane;
+          const lang = {
+            code: opt.dataset.code,
+            name: opt.dataset.name,
+            flag: opt.dataset.flag,
+          };
 
-        if (pane === "source") {
-          this.sourceLang = lang;
-          this.els.sourceLangDD.querySelectorAll(".lang-option").forEach((o) =>
-            o.classList.toggle("active", o.dataset.code === lang.code)
-          );
-        } else {
-          this.targetLang = lang;
-          this.els.targetLangDD.querySelectorAll(".lang-option").forEach((o) =>
-            o.classList.toggle("active", o.dataset.code === lang.code)
-          );
+          if (pane === "source") {
+            this.sourceLang = lang;
+            this.els.sourceLangDD.querySelectorAll(".lang-option").forEach((o) => {
+              o.classList.toggle("active", o.dataset.code === lang.code);
+            });
+          } else {
+            this.targetLang = lang;
+            this.els.targetLangDD.querySelectorAll(".lang-option").forEach((o) => {
+              o.classList.toggle("active", o.dataset.code === lang.code);
+            });
+          }
+
+          this.updateLangButtons();
+          this.closeAllDropdowns();
+          return;
         }
 
-        this.updateLangButtons();
-        this.closeAllDropdowns();
-        return;
-      }
-
-      if (!e.target.closest(".lang-selector") && !e.target.closest(".lang-dropdown")) {
-        this.closeAllDropdowns();
-      }
-    });
+        if (!e.target.closest(".lang-selector") && !e.target.closest(".lang-dropdown")) {
+          this.closeAllDropdowns();
+        }
+      },
+      true
+    );
 
     [this.els.sourceLangDD, this.els.targetLangDD].forEach((dd) => {
       if (!dd) return;
+
+      dd.addEventListener("mousedown", (e) => {
+        e.stopPropagation();
+      });
+
+      dd.addEventListener("click", (e) => {
+        e.stopPropagation();
+      });
 
       dd.addEventListener(
         "wheel",
@@ -598,10 +601,6 @@ class TranslatorDashboard {
         },
         { passive: true }
       );
-
-      dd.addEventListener("click", (e) => {
-        e.stopPropagation();
-      });
     });
 
     if (this.els.copySourceBtn) {
@@ -637,7 +636,6 @@ class TranslatorDashboard {
     }
   }
 
-  /* ── TRANSLATE ── */
   async doTranslate() {
     const text = this.els.sourceInput?.value?.trim();
     if (!text) {
@@ -742,7 +740,6 @@ class TranslatorDashboard {
     }
   }
 
-  /* ── UI STATE ── */
   setTranslating(state) {
     this.isTranslating = state;
     if (this.els.translateBtn) {
@@ -777,7 +774,6 @@ class TranslatorDashboard {
     }
   }
 
-  /* ── SWAP LANGUAGES ── */
   swapLanguages() {
     if (this.sourceLang.code === "auto") return;
 
@@ -796,27 +792,38 @@ class TranslatorDashboard {
     this.showToast(`Swapped: ${this.sourceLang.flag} ↔ ${this.targetLang.flag}`, "success");
   }
 
-  /* ── DROPDOWN ── */
   toggleDropdown(pane) {
     const dd = pane === "source" ? this.els.sourceLangDD : this.els.targetLangDD;
     const btn = pane === "source" ? this.els.sourceLangBtn : this.els.targetLangBtn;
     const other = pane === "source" ? this.els.targetLangDD : this.els.sourceLangDD;
 
-    if (other) other.classList.remove("open");
+    if (other) {
+      other.classList.remove("open");
+      other.style.top = "";
+      other.style.left = "";
+      other.style.width = "";
+      other.style.maxHeight = "";
+    }
+
     if (!dd || !btn) return;
 
     const isOpen = dd.classList.contains("open");
     if (isOpen) {
       dd.classList.remove("open");
+      dd.style.top = "";
+      dd.style.left = "";
+      dd.style.width = "";
+      dd.style.maxHeight = "";
       return;
     }
 
     const rect = btn.getBoundingClientRect();
-    const dropdownWidth = Math.max(rect.width, 220);
+    const margin = 12;
+    const gap = 6;
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
-    const margin = 12;
 
+    const dropdownWidth = Math.max(rect.width, 220);
     dd.style.width = dropdownWidth + "px";
 
     let left = rect.left;
@@ -824,27 +831,26 @@ class TranslatorDashboard {
       left = viewportWidth - dropdownWidth - margin;
     }
     if (left < margin) left = margin;
-
     dd.style.left = left + "px";
+
+    const spaceBelow = viewportHeight - rect.bottom - margin - gap;
+    const spaceAbove = rect.top - margin - gap;
+
+    let top;
+    let maxHeight;
+
+    if (spaceBelow >= 220 || spaceBelow >= spaceAbove) {
+      top = rect.bottom + gap;
+      maxHeight = Math.max(140, spaceBelow);
+    } else {
+      maxHeight = Math.max(140, spaceAbove);
+      top = rect.top - Math.min(maxHeight, 320) - gap;
+    }
+
+    dd.style.top = `${Math.max(margin, top)}px`;
+    dd.style.maxHeight = `${Math.min(maxHeight, 320)}px`;
+    dd.scrollTop = 0;
     dd.classList.add("open");
-
-    requestAnimationFrame(() => {
-      const actualHeight = dd.offsetHeight || 260;
-
-      let top = rect.bottom + 6;
-      const spaceBelow = viewportHeight - rect.bottom;
-      const spaceAbove = rect.top;
-
-      if (spaceBelow < actualHeight && spaceAbove > spaceBelow) {
-        top = Math.max(margin, rect.top - actualHeight - 6);
-      }
-
-      if (top + actualHeight > viewportHeight - margin) {
-        top = Math.max(margin, viewportHeight - actualHeight - margin);
-      }
-
-      dd.style.top = top + "px";
-    });
   }
 
   closeAllDropdowns() {
@@ -853,10 +859,11 @@ class TranslatorDashboard {
       dd.classList.remove("open");
       dd.style.top = "";
       dd.style.left = "";
+      dd.style.width = "";
+      dd.style.maxHeight = "";
     });
   }
 
-  /* ── HISTORY ── */
   addToHistory(source, translation, detectedLang) {
     const entry = {
       id: Date.now(),
@@ -900,7 +907,6 @@ class TranslatorDashboard {
     if (this.els.outputText) this.els.outputText.textContent = item.translation;
   }
 
-  /* ── LANG USAGE ── */
   trackLangUsage(lang) {
     this.langUsage[lang.code] = (this.langUsage[lang.code] || 0) + 1;
     this.renderLangStats();
@@ -938,7 +944,6 @@ class TranslatorDashboard {
       .join("");
   }
 
-  /* ── METRICS ── */
   updateMetrics(elapsedMs) {
     if (this.els.metricTranslations) this.els.metricTranslations.textContent = this.totalTranslations;
     if (this.els.statTranslations) this.els.statTranslations.textContent = this.totalTranslations;
@@ -952,7 +957,6 @@ class TranslatorDashboard {
     if (this.els.metricAvgTime) this.els.metricAvgTime.textContent = elapsedMs + "ms";
   }
 
-  /* ── TTS ── */
   speakOutput() {
     const text = this.els.outputText?.innerText;
     if (!text || text.includes("Translation appears here")) return;
@@ -969,7 +973,6 @@ class TranslatorDashboard {
     }
   }
 
-  /* ── TOAST ── */
   showToast(message, type = "info") {
     if (!this.els.toastContainer) return;
 
@@ -987,13 +990,11 @@ class TranslatorDashboard {
     }, 3000);
   }
 
-  /* ── STATUS ── */
   updateStatus(online, text) {
     if (this.els.statusDot) this.els.statusDot.classList.toggle("offline", !online);
     if (this.els.statusText) this.els.statusText.textContent = text;
   }
 
-  /* ── UPTIME CLOCK ── */
   startUptimeClock() {
     const start = Date.now();
     setInterval(() => {
@@ -1005,7 +1006,6 @@ class TranslatorDashboard {
     }, 1000);
   }
 
-  /* ── ANIMATE COUNTERS ── */
   animateCounters() {
     const elements = document.querySelectorAll(".metric-number[data-target]");
     elements.forEach((el) => {
@@ -1020,7 +1020,6 @@ class TranslatorDashboard {
     });
   }
 
-  /* ── CHARTS INIT ── */
   initCharts() {
     setTimeout(() => {
       if (window.dashboardCharts) {
@@ -1050,7 +1049,6 @@ class TranslatorDashboard {
     }, 500);
   }
 
-  /* ── HELPERS ── */
   escapeHtml(str) {
     return str
       .replace(/&/g, "&amp;")
@@ -1061,5 +1059,4 @@ class TranslatorDashboard {
   }
 }
 
-// Launch
 const app = new TranslatorDashboard();

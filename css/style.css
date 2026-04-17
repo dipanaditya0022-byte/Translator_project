@@ -421,27 +421,25 @@ body {
   background: var(--bg-panel);
   border: 1px solid var(--border-glow);
   border-radius: var(--radius-md);
-  max-height: min(260px, calc(100vh - 24px));
   width: 220px;
+  max-height: 260px;
   overflow-y: auto;
   overflow-x: hidden;
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
   z-index: 999999;
   display: none;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), var(--shadow-cyan);
   pointer-events: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .lang-dropdown::-webkit-scrollbar {
   width: 6px;
 }
-
 .lang-dropdown::-webkit-scrollbar-track {
   background: rgba(255,255,255,0.03);
   border-radius: 6px;
 }
-
 .lang-dropdown::-webkit-scrollbar-thumb {
   background: var(--neon-cyan);
   border-radius: 6px;
@@ -476,7 +474,7 @@ body {
   pointer-events: auto;
   user-select: none;
   position: relative;
-  z-index: 1;
+  z-index: 2;
 }
 
 .lang-option:hover {
