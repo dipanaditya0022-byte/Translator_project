@@ -596,9 +596,6 @@ class TranslatorDashboard {
       });
     }
 
-    // Close dropdowns on scroll (since we use position:fixed)
-    window.addEventListener("scroll", () => this.closeAllDropdowns(), { passive: true });
-
     if (this.els.speakOutputBtn) {
       this.els.speakOutputBtn.addEventListener("click", () => this.speakOutput());
     }
@@ -746,37 +743,10 @@ class TranslatorDashboard {
 
   /* ── DROPDOWN ── */
   toggleDropdown(pane) {
-    const dd = pane === "source"
-      ? this.els.sourceLangDD
-      : this.els.targetLangDD;
-
-    const btn = pane === "source"
-      ? this.els.sourceLangBtn
-      : this.els.targetLangBtn;
-
-    const other = pane === "source"
-      ? this.els.targetLangDD
-      : this.els.sourceLangDD;
-
+    const dd    = pane === "source" ? this.els.sourceLangDD : this.els.targetLangDD;
+    const other = pane === "source" ? this.els.targetLangDD : this.els.sourceLangDD;
     if (other) other.classList.remove("open");
-
-    if (!dd) return;
-
-    const isOpen = dd.classList.contains("open");
-    if (isOpen) {
-      dd.classList.remove("open");
-      return;
-    }
-
-    // Position dropdown below the button using fixed coords
-    if (btn) {
-      const rect = btn.getBoundingClientRect();
-      dd.style.top  = (rect.bottom + 6) + "px";
-      dd.style.left = rect.left + "px";
-      dd.style.width = Math.max(rect.width, 220) + "px";
-    }
-
-    dd.classList.add("open");
+    if (dd) dd.classList.toggle("open");
   }
   closeAllDropdowns() {
     this.els.sourceLangDD?.classList.remove("open");
