@@ -1,8 +1,5 @@
 /* ============================================
    AZURE TRANSLATOR MODULE
-   - Proxy ke zariye Azure ko call karta hai
-   - 84-character AI Foundry keys support karta hai
-   - Key X-Azure-Key header mein jaati hai
    ============================================ */
 
 class AzureTranslator {
@@ -16,39 +13,72 @@ class AzureTranslator {
     this.lastRequestTime = null;
   }
 
-  // Key aur region hamesha fresh localStorage se lo
-  get _key()    { return (localStorage.getItem("azure_key")    || "").trim(); }
-  get _region() { return (localStorage.getItem("azure_region") || "eastasia").trim(); }
+  get _key() {
+    return (localStorage.getItem("azure_key") || "").trim();
+  }
 
-  // Har request mein ye headers lagate hain
+  get _region() {
+    return (localStorage.getItem("azure_region") || "").trim();
+  }
+
   _headers() {
     return {
-      "Content-Type":      "application/json; charset=UTF-8",
-      "X-Azure-Key":       this._key,
-      "X-Azure-Region":    this._region,
-      "X-ClientTraceId":   this._traceId(),
+      "Content-Type": "application/json; charset=UTF-8",
+      "X-Azure-Key": this._key,
+      "X-Azure-Region": this._region,
+      "X-ClientTraceId": this._traceId(),
     };
   }
 
-  /* ── TRANSLATE ── */
   async translate(text, targetLang, sourceLang = null) {
-    if (!text?.trim()) throw new Error("Text khali hai");
-    if (text.length > this.rateLimit.charactersPerRequest)
-      throw new Error(`Text ${this.rateLimit.charactersPerRequest} characters se zyada hai`);
-    if (!this._key) throw new Error("Azure Key missing hai — Settings mein jaake key daalo ⚙");
+    if (!text?.trim()) {
+      throw new Error("Text is empty.");
+    }
 
-    let qs = `api-version=3.0&to=${targetLang}`;
-    if (sourceLang && sourceLang !== "auto") qs += `&from=${sourceLang}`;
+    if (text.length > this.rateLimit.charactersPerRequest) {
+      throw new Error(`Text exceeds ${this.rateLimit.charactersPerRequest} characters.`);
+    }
 
-    const res = await fetch(`${this.endpoint}translate?${qs}`, {
-      method:  "POST",
-      headers: this._headers(),
-      body:    JSON.stringify([{ text }]),
-    }).catch(() => { throw new Error("Proxy server nahi chal raha! Terminal mein chalao: node proxy-server.js"); });
+    if (!this._key) {
+      throw new Error("Azure key missing. Open Settings and paste your key.");
+    }
+
+    if (!this._region) {
+      throw new Error("Azure region missing. Open Settings and enter the correct region.");
+    }
+
+    let qs = `api-version=3.0&to=${encodeURIComponent(targetLang)}`;
+    if (sourceLang && sourceLang !== "auto") {
+      qs += `&from=${encodeURIComponent(sourceLang)}`;
+    }
+
+    let res;
+    try {
+      res = await fetch(`${this.endpoint}translate?${qs}`, {
+        method: "POST",
+        headers: this._headers(),
+        body: JSON.stringify([{ text }]),
+      });
+    } catch (e) {
+      throw new Error("Proxy server is not running. Start it with: node proxy-server.js");
+    }
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(`Azure Error ${res.status}: ${err?.error?.message || res.statusText}`);
+      let message = err?.error?.message || res.statusText || "Request failed";
+
+      if (res.status === 401) {
+        message =
+          "401 Unauthorized: Azure key or region is incorrect, expired, or belongs to the wrong Azure resource.";
+      } else if (res.status === 403) {
+        message =
+          "403 Forbidden: access denied by Azure. Check resource permissions and key type.";
+      } else if (res.status === 429) {
+        message =
+          "429 Too Many Requests: Azure rate limit reached. Try again in a moment.";
+      }
+
+      throw new Error(`Azure Error ${res.status}: ${message}`);
     }
 
     const data = await res.json();
@@ -56,44 +86,52 @@ class AzureTranslator {
     return this._parse(data);
   }
 
-  /* ── DETECT LANGUAGE ── */
   async detectLanguage(text) {
-    if (!this._key) return { language: "unknown", confidence: 0 };
+    if (!this._key || !this._region) {
+      return { language: "unknown", confidence: 0 };
+    }
 
-    const res = await fetch(`${this.endpoint}detect?api-version=3.0`, {
-      method:  "POST",
-      headers: this._headers(),
-      body:    JSON.stringify([{ text: text.substring(0, 100) }]),
-    }).catch(() => { throw new Error("Proxy server nahi chal raha!"); });
+    let res;
+    try {
+      res = await fetch(`${this.endpoint}detect?api-version=3.0`, {
+        method: "POST",
+        headers: this._headers(),
+        body: JSON.stringify([{ text: text.substring(0, 100) }]),
+      });
+    } catch (e) {
+      throw new Error("Proxy server is not running.");
+    }
 
-    if (!res.ok) throw new Error(`Detect failed: ${res.status}`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(`Detect failed ${res.status}: ${err?.error?.message || res.statusText}`);
+    }
+
     const data = await res.json();
 
     return {
-      language:               data[0]?.language || "unknown",
-      confidence:             Math.round((data[0]?.score || 0) * 100),
+      language: data[0]?.language || "unknown",
+      confidence: Math.round((data[0]?.score || 0) * 100),
       isTranslationSupported: data[0]?.isTranslationSupported || false,
     };
   }
 
-  /* ── PARSE RESPONSE ── */
   _parse(data) {
-    if (!data?.[0]) throw new Error("Invalid API response");
+    if (!data?.[0]) throw new Error("Invalid API response.");
     const t = data[0].translations?.[0];
-    if (!t) throw new Error("Translation nahi mili response mein");
+    if (!t) throw new Error("Translation missing in API response.");
 
     return {
-      translatedText:   t.text,
-      targetLanguage:   t.to,
-      sourceLanguage:   data[0].detectedLanguage?.language || null,
+      translatedText: t.text,
+      targetLanguage: t.to,
+      sourceLanguage: data[0].detectedLanguage?.language || null,
       sourceConfidence: data[0].detectedLanguage?.score
-                          ? Math.round(data[0].detectedLanguage.score * 100)
-                          : null,
+        ? Math.round(data[0].detectedLanguage.score * 100)
+        : null,
       timestamp: new Date().toISOString(),
     };
   }
 
-  /* ── UTILS ── */
   _track(chars) {
     const now = Date.now();
     this.requestCount++;
@@ -104,8 +142,8 @@ class AzureTranslator {
   }
 
   isRateLimited() {
-    return this.requestTimestamps.filter(t => Date.now() - t < 60000).length
-           >= this.rateLimit.requestsPerMinute;
+    return this.requestTimestamps.filter(t => Date.now() - t < 60000).length >=
+      this.rateLimit.requestsPerMinute;
   }
 
   _traceId() {
@@ -117,12 +155,12 @@ class AzureTranslator {
 
   getStats() {
     return {
-      totalRequests:      this.requestCount,
-      totalChars:         this.charCount,
+      totalRequests: this.requestCount,
+      totalChars: this.charCount,
       requestsLastMinute: this.requestTimestamps.filter(t => Date.now() - t < 60000).length,
-      lastRequest:        this.lastRequestTime
-                            ? new Date(this.lastRequestTime).toLocaleTimeString()
-                            : "N/A",
+      lastRequest: this.lastRequestTime
+        ? new Date(this.lastRequestTime).toLocaleTimeString()
+        : "N/A",
     };
   }
 }

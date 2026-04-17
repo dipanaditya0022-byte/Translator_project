@@ -83,19 +83,18 @@ class TranslatorDashboard {
   }
 
   /* ── CHECK CREDENTIALS ON PAGE LOAD ── */
-  checkCredentialsOnLoad() {
-    const key    = localStorage.getItem("azure_key")    || "";
-    const region = localStorage.getItem("azure_region") || "";
+checkCredentialsOnLoad() {
+  const key = localStorage.getItem("azure_key") || "";
+  const region = localStorage.getItem("azure_region") || "";
 
-    if (!key || !region) {
-      this.updateStatus(false, "⚙ Settings mein Azure Key enter karein");
-      setTimeout(() => this.showSettingsModal(), 800);
-    } else {
-      this.updateStatus(true, "Azure Connected ✓");
-      this.showToast("Azure credentials loaded ✓", "success");
-    }
+  if (!key || !region) {
+    this.updateStatus(false, "⚙ Settings mein Azure Key enter karein");
+    setTimeout(() => this.showSettingsModal(), 800);
+  } else {
+    this.updateStatus(true, `Credentials loaded [${region}]`);
+    this.showToast("Azure credentials loaded ✓", "success");
   }
-
+}
   /* ── INJECT SETTINGS MODAL INTO DOM ── */
   injectSettingsModal() {
     const modal = document.createElement("div");
@@ -376,75 +375,86 @@ class TranslatorDashboard {
   }
 
   saveSettings() {
-    const key    = document.getElementById("settingsKey").value.trim();
-    const region = document.getElementById("settingsRegion").value.trim();
-    const status = document.getElementById("settingsSavedStatus");
+  const key = document.getElementById("settingsKey").value.trim();
+  const region = document.getElementById("settingsRegion").value.trim();
+  const status = document.getElementById("settingsSavedStatus");
 
-    if (!key) {
-      status.textContent = "⚠ API Key enter karein!";
-      status.className   = "settings-status error";
-      document.getElementById("settingsKey").focus();
-      return;
-    }
-    if (!region) {
-      status.textContent = "⚠ Region enter karein (e.g. eastasia)";
-      status.className   = "settings-status error";
-      document.getElementById("settingsRegion").focus();
-      return;
-    }
-
-    localStorage.setItem("azure_key",    key);
-    localStorage.setItem("azure_region", region);
-
-    status.textContent = "✓ Saved! Connecting...";
-    status.className   = "settings-status success";
-
-    this.updateStatus(true, `Azure Connected ✓ [${region}]`);
-    this.showToast("Azure credentials saved ✓", "success");
-    this.updateSettingsIndicator(true);
-
-    setTimeout(() => this.hideSettingsModal(), 1000);
+  if (!key) {
+    status.textContent = "⚠ Enter API key.";
+    status.className = "settings-status error";
+    document.getElementById("settingsKey").focus();
+    return;
   }
+
+  if (!region) {
+    status.textContent = "⚠ Enter region, for example: eastasia";
+    status.className = "settings-status error";
+    document.getElementById("settingsRegion").focus();
+    return;
+  }
+
+  localStorage.setItem("azure_key", key);
+  localStorage.setItem("azure_region", region);
+
+  status.textContent = "✓ Saved locally. Now test connection.";
+  status.className = "settings-status success";
+
+  this.updateStatus(false, `Credentials saved [${region}]`);
+  this.showToast("Credentials saved. Test connection once.", "success");
+  this.updateSettingsIndicator(false);
+}
 
   async testConnection() {
-    const key    = document.getElementById("settingsKey").value.trim();
-    const region = document.getElementById("settingsRegion").value.trim();
-    const status = document.getElementById("settingsSavedStatus");
+  const key = document.getElementById("settingsKey").value.trim();
+  const region = document.getElementById("settingsRegion").value.trim();
+  const status = document.getElementById("settingsSavedStatus");
 
-    if (!key || !region) {
-      status.textContent = "⚠ Pehle Key aur Region fill karein";
-      status.className   = "settings-status error";
-      return;
-    }
-
-    status.textContent = "🔌 Testing connection...";
-    status.className   = "settings-status";
-
-    try {
-      const response = await fetch("/api/translate?api-version=3.0&to=hi", {
-        method:  "POST",
-        headers: {
-          "Content-Type":   "application/json",
-          "X-Azure-Key":    key,
-          "X-Azure-Region": region,
-        },
-        body: JSON.stringify([{ text: "Hello" }]),
-      });
-
-      if (response.ok) {
-        status.textContent = "✓ Connection successful! Key valid hai.";
-        status.className   = "settings-status success";
-      } else {
-        const err = await response.json().catch(() => ({}));
-        status.textContent = `✗ Error ${response.status}: ${err?.error?.message || "Invalid credentials"}`;
-        status.className   = "settings-status error";
-      }
-    } catch (e) {
-      status.textContent = "✗ Proxy server nahi chal raha. node proxy-server.js chalao.";
-      status.className   = "settings-status error";
-    }
+  if (!key || !region) {
+    status.textContent = "⚠ Fill both key and region first.";
+    status.className = "settings-status error";
+    return;
   }
 
+  status.textContent = "🔌 Testing connection...";
+  status.className = "settings-status";
+
+  try {
+    const response = await fetch("/api/translate?api-version=3.0&to=hi", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Azure-Key": key,
+        "X-Azure-Region": region,
+      },
+      body: JSON.stringify([{ text: "Hello" }]),
+    });
+
+    const data = await response.json().catch(() => ({}));
+
+    if (response.ok && data?.[0]?.translations?.[0]?.text) {
+      localStorage.setItem("azure_key", key);
+      localStorage.setItem("azure_region", region);
+
+      status.textContent = `✓ Connected successfully. Test output: ${data[0].translations[0].text}`;
+      status.className = "settings-status success";
+
+      this.updateStatus(true, `Azure Connected ✓ [${region}]`);
+      this.showToast("Azure connection successful ✓", "success");
+      this.updateSettingsIndicator(true);
+    } else {
+      const msg = data?.error?.message || "Invalid credentials or wrong region";
+      status.textContent = `✗ Error ${response.status}: ${msg}`;
+      status.className = "settings-status error";
+
+      this.updateStatus(false, "Azure auth failed — check key/region");
+    }
+  } catch (e) {
+    status.textContent = "✗ Proxy server not running. Start: node proxy-server.js";
+    status.className = "settings-status error";
+
+    this.updateStatus(false, "Proxy server offline");
+  }
+}
   updateSettingsIndicator(connected) {
     const settingsBtn = document.querySelector('[data-tooltip="Settings"]');
     if (settingsBtn && connected) {
@@ -679,18 +689,30 @@ class TranslatorDashboard {
   }
 
   onTranslationError(err) {
-    const msg = err.message || "Translation failed";
-    this.showToast(msg.substring(0, 100), "error");
-    console.error("Translation error:", err);
-    if (this.els.outputText) {
-      this.els.outputText.innerHTML =
-        `<span style="color:var(--neon-pink);font-size:0.85rem;">⚠ ${this.escapeHtml(msg)}</span>`;
-    }
-    // If credentials issue, open settings
-    if (msg.includes("credentials") || msg.includes("Settings") || msg.includes("401")) {
-      setTimeout(() => this.showSettingsModal(), 500);
-    }
+  const msg = err.message || "Translation failed";
+  this.showToast(msg.substring(0, 120), "error");
+  console.error("Translation error:", err);
+
+  if (this.els.outputText) {
+    this.els.outputText.innerHTML =
+      `<span style="color:var(--neon-pink);font-size:0.85rem;">⚠ ${this.escapeHtml(msg)}</span>`;
   }
+
+  if (
+    msg.includes("401") ||
+    msg.includes("Unauthorized") ||
+    msg.includes("key") ||
+    msg.includes("region") ||
+    msg.includes("Settings")
+  ) {
+    this.updateStatus(false, "Azure auth failed — open Settings");
+    setTimeout(() => this.showSettingsModal(), 500);
+  } else if (msg.includes("Proxy server")) {
+    this.updateStatus(false, "Proxy server offline");
+  } else {
+    this.updateStatus(false, "Translation failed");
+  }
+}
 
   /* ── UI STATE ── */
   setTranslating(state) {
