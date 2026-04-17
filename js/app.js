@@ -533,55 +533,19 @@ class TranslatorDashboard {
       });
     }
 
+  // Single clean click handler for dropdown options + outside close
   document.addEventListener("click", (e) => {
-  const opt = e.target.closest(".lang-option");
+    const opt = e.target.closest(".lang-option");
 
-  // If clicked on an option -> select it
-  if (opt) {
-    e.stopPropagation();
-
-    const pane = opt.dataset.pane;
-    const lang = {
-      code: opt.dataset.code,
-      name: opt.dataset.name,
-      flag: opt.dataset.flag
-    };
-
-    if (pane === "source") {
-      this.sourceLang = lang;
-      this.els.sourceLangDD
-        .querySelectorAll(".lang-option")
-        .forEach((o) =>
-          o.classList.toggle("active", o.dataset.code === lang.code)
-        );
-    } else {
-      this.targetLang = lang;
-      this.els.targetLangDD
-        .querySelectorAll(".lang-option")
-        .forEach((o) =>
-          o.classList.toggle("active", o.dataset.code === lang.code)
-        );
-    }
-
-    this.updateLangButtons();
-    this.closeAllDropdowns();
-    return;
-  }
-
-  // Close only if clicked outside
-  if (
-    !e.target.closest(".lang-selector") &&
-    !e.target.closest(".lang-dropdown")
-  ) {
-    this.closeAllDropdowns();
-  }
-  });
-
-    document.addEventListener("click", (e) => {
-      const opt = e.target.closest(".lang-option");
-      if (!opt) return;
+    if (opt) {
+      e.stopPropagation();
       const pane = opt.dataset.pane;
-      const lang = { code: opt.dataset.code, name: opt.dataset.name, flag: opt.dataset.flag };
+      const lang = {
+        code: opt.dataset.code,
+        name: opt.dataset.name,
+        flag: opt.dataset.flag,
+      };
+
       if (pane === "source") {
         this.sourceLang = lang;
         this.els.sourceLangDD.querySelectorAll(".lang-option").forEach((o) =>
@@ -595,7 +559,17 @@ class TranslatorDashboard {
       }
       this.updateLangButtons();
       this.closeAllDropdowns();
-    });
+      return;
+    }
+
+    // Close dropdowns if clicked outside
+    if (
+      !e.target.closest(".lang-selector") &&
+      !e.target.closest(".lang-dropdown")
+    ) {
+      this.closeAllDropdowns();
+    }
+  });
 
     if (this.els.copySourceBtn) {
       this.els.copySourceBtn.addEventListener("click", () => {
@@ -621,6 +595,9 @@ class TranslatorDashboard {
         }
       });
     }
+
+    // Close dropdowns on scroll (since we use position:fixed)
+    window.addEventListener("scroll", () => this.closeAllDropdowns(), { passive: true });
 
     if (this.els.speakOutputBtn) {
       this.els.speakOutputBtn.addEventListener("click", () => this.speakOutput());
@@ -769,21 +746,38 @@ class TranslatorDashboard {
 
   /* ── DROPDOWN ── */
   toggleDropdown(pane) {
-  const dd = pane === "source"
-    ? this.els.sourceLangDD
-    : this.els.targetLangDD;
+    const dd = pane === "source"
+      ? this.els.sourceLangDD
+      : this.els.targetLangDD;
 
-  const other = pane === "source"
-    ? this.els.targetLangDD
-    : this.els.sourceLangDD;
+    const btn = pane === "source"
+      ? this.els.sourceLangBtn
+      : this.els.targetLangBtn;
 
-  if (other) other.classList.remove("open");
+    const other = pane === "source"
+      ? this.els.targetLangDD
+      : this.els.sourceLangDD;
 
-  if (dd) {
-    dd.classList.toggle("open");
-    console.log("dropdown opened", pane);
+    if (other) other.classList.remove("open");
+
+    if (!dd) return;
+
+    const isOpen = dd.classList.contains("open");
+    if (isOpen) {
+      dd.classList.remove("open");
+      return;
+    }
+
+    // Position dropdown below the button using fixed coords
+    if (btn) {
+      const rect = btn.getBoundingClientRect();
+      dd.style.top  = (rect.bottom + 6) + "px";
+      dd.style.left = rect.left + "px";
+      dd.style.width = Math.max(rect.width, 220) + "px";
+    }
+
+    dd.classList.add("open");
   }
-}
   closeAllDropdowns() {
     this.els.sourceLangDD?.classList.remove("open");
     this.els.targetLangDD?.classList.remove("open");
