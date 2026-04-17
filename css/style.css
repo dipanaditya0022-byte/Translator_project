@@ -343,7 +343,7 @@ body {
   background: var(--bg-card);
   border: 1px solid var(--border-dim);
   border-radius: var(--radius-xl);
-  overflow: visible;          /* FIX: allow dropdown to overflow */
+  overflow: visible !important;
   position: relative;
   min-height: 400px;
 }
@@ -417,17 +417,34 @@ body {
 }
 
 .lang-dropdown {
-  position: fixed;        /* FIX: fixed so no parent clips it */
+  position: fixed;
   background: var(--bg-panel);
   border: 1px solid var(--border-glow);
   border-radius: var(--radius-md);
-  max-height: 250px;
-  width: 220px;           /* fixed width */
+  max-height: min(260px, calc(100vh - 24px));
+  width: 220px;
   overflow-y: auto;
-  z-index: 99999;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  z-index: 999999;
   display: none;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), var(--shadow-cyan);
   pointer-events: auto;
+}
+
+.lang-dropdown::-webkit-scrollbar {
+  width: 6px;
+}
+
+.lang-dropdown::-webkit-scrollbar-track {
+  background: rgba(255,255,255,0.03);
+  border-radius: 6px;
+}
+
+.lang-dropdown::-webkit-scrollbar-thumb {
+  background: var(--neon-cyan);
+  border-radius: 6px;
 }
 
 .lang-dropdown.open {
@@ -456,8 +473,10 @@ body {
   font-family: var(--font-body);
   font-size: 0.88rem;
   color: var(--text-secondary);
-  pointer-events: auto;   /* FIX: ensure clickable */
+  pointer-events: auto;
   user-select: none;
+  position: relative;
+  z-index: 1;
 }
 
 .lang-option:hover {

@@ -6,15 +6,15 @@
 class TranslatorDashboard {
   constructor() {
     this.translator = null;
-    this.history    = [];
-    this.langUsage  = {};
+    this.history = [];
+    this.langUsage = {};
     this.requestData = Array(20).fill(0);
-    this.charData    = Array(20).fill(0);
-    this.isTranslating     = false;
+    this.charData = Array(20).fill(0);
+    this.isTranslating = false;
     this.translateDebounce = null;
     this.totalTranslations = 0;
-    this.totalChars        = 0;
-    this.uptime            = 0;
+    this.totalChars = 0;
+    this.uptime = 0;
     this.els = {};
 
     this.init();
@@ -37,44 +37,45 @@ class TranslatorDashboard {
 
   cacheElements() {
     this.els = {
-      sourceInput:        document.getElementById("sourceInput"),
-      outputText:         document.getElementById("outputText"),
-      sourceLangBtn:      document.getElementById("sourceLangBtn"),
-      targetLangBtn:      document.getElementById("targetLangBtn"),
-      sourceLangDD:       document.getElementById("sourceLangDropdown"),
-      targetLangDD:       document.getElementById("targetLangDropdown"),
-      swapBtn:            document.getElementById("swapBtn"),
-      translateBtn:       document.getElementById("translateBtn"),
-      charCounter:        document.getElementById("charCounter"),
-      confidenceBar:      document.getElementById("confidenceBar"),
-      confidenceValue:    document.getElementById("confidenceValue"),
-      detectedLang:       document.getElementById("detectedLang"),
-      detectedText:       document.getElementById("detectedText"),
-      historyList:        document.getElementById("historyList"),
-      langStats:          document.getElementById("langStats"),
-      statTranslations:   document.getElementById("statTranslations"),
-      statChars:          document.getElementById("statChars"),
-      statLanguages:      document.getElementById("statLanguages"),
-      statUptime:         document.getElementById("statUptime"),
+      sourceInput: document.getElementById("sourceInput"),
+      outputText: document.getElementById("outputText"),
+      sourceLangBtn: document.getElementById("sourceLangBtn"),
+      targetLangBtn: document.getElementById("targetLangBtn"),
+      sourceLangDD: document.getElementById("sourceLangDropdown"),
+      targetLangDD: document.getElementById("targetLangDropdown"),
+      swapBtn: document.getElementById("swapBtn"),
+      translateBtn: document.getElementById("translateBtn"),
+      charCounter: document.getElementById("charCounter"),
+      confidenceBar: document.getElementById("confidenceBar"),
+      confidenceValue: document.getElementById("confidenceValue"),
+      detectedLang: document.getElementById("detectedLang"),
+      detectedText: document.getElementById("detectedText"),
+      historyList: document.getElementById("historyList"),
+      langStats: document.getElementById("langStats"),
+      statTranslations: document.getElementById("statTranslations"),
+      statChars: document.getElementById("statChars"),
+      statLanguages: document.getElementById("statLanguages"),
+      statUptime: document.getElementById("statUptime"),
       metricTranslations: document.getElementById("metricTranslations"),
-      metricChars:        document.getElementById("metricChars"),
-      metricLanguages:    document.getElementById("metricLanguages"),
-      metricAvgTime:      document.getElementById("metricAvgTime"),
-      statusDot:          document.getElementById("statusDot"),
-      statusText:         document.getElementById("statusText"),
-      toastContainer:     document.getElementById("toastContainer"),
-      copySourceBtn:      document.getElementById("copySourceBtn"),
-      clearSourceBtn:     document.getElementById("clearSourceBtn"),
-      copyOutputBtn:      document.getElementById("copyOutputBtn"),
-      speakOutputBtn:     document.getElementById("speakOutputBtn"),
-      reqSparkline:       document.getElementById("reqSparkline"),
-      charSparkline:      document.getElementById("charSparkline"),
+      metricChars: document.getElementById("metricChars"),
+      metricLanguages: document.getElementById("metricLanguages"),
+      metricAvgTime: document.getElementById("metricAvgTime"),
+      statusDot: document.getElementById("statusDot"),
+      statusText: document.getElementById("statusText"),
+      toastContainer: document.getElementById("toastContainer"),
+      copySourceBtn: document.getElementById("copySourceBtn"),
+      clearSourceBtn: document.getElementById("clearSourceBtn"),
+      copyOutputBtn: document.getElementById("copyOutputBtn"),
+      speakOutputBtn: document.getElementById("speakOutputBtn"),
+      reqSparkline: document.getElementById("reqSparkline"),
+      charSparkline: document.getElementById("charSparkline"),
     };
 
     this.sourceLang = { code: "auto", name: "Auto-Detect", flag: "🔍" };
-    this.targetLang = AZURE_CONFIG.supportedLanguages.find(
-      (l) => l.code === AZURE_CONFIG.dashboard.defaultTargetLang
-    ) || AZURE_CONFIG.supportedLanguages[0];
+    this.targetLang =
+      AZURE_CONFIG.supportedLanguages.find(
+        (l) => l.code === AZURE_CONFIG.dashboard.defaultTargetLang
+      ) || AZURE_CONFIG.supportedLanguages[0];
   }
 
   /* ── INIT TRANSLATOR ── */
@@ -83,18 +84,19 @@ class TranslatorDashboard {
   }
 
   /* ── CHECK CREDENTIALS ON PAGE LOAD ── */
-checkCredentialsOnLoad() {
-  const key = localStorage.getItem("azure_key") || "";
-  const region = localStorage.getItem("azure_region") || "";
+  checkCredentialsOnLoad() {
+    const key = localStorage.getItem("azure_key") || "";
+    const region = localStorage.getItem("azure_region") || "";
 
-  if (!key || !region) {
-    this.updateStatus(false, "⚙ Settings mein Azure Key enter karein");
-    setTimeout(() => this.showSettingsModal(), 800);
-  } else {
-    this.updateStatus(true, `Credentials loaded [${region}]`);
-    this.showToast("Azure credentials loaded ✓", "success");
+    if (!key || !region) {
+      this.updateStatus(false, "⚙ Settings mein Azure Key enter karein");
+      setTimeout(() => this.showSettingsModal(), 800);
+    } else {
+      this.updateStatus(true, `Credentials loaded [${region}]`);
+      this.showToast("Azure credentials loaded ✓", "success");
+    }
   }
-}
+
   /* ── INJECT SETTINGS MODAL INTO DOM ── */
   injectSettingsModal() {
     const modal = document.createElement("div");
@@ -152,7 +154,6 @@ checkCredentialsOnLoad() {
     `;
     document.body.appendChild(modal);
 
-    // Inject styles
     const style = document.createElement("style");
     style.textContent = `
       #settingsModal { display: none; position: fixed; inset: 0; z-index: 9999; }
@@ -302,7 +303,6 @@ checkCredentialsOnLoad() {
         transform: translateY(-1px);
       }
 
-      /* Key saved indicator in header */
       .key-saved-badge {
         display: inline-flex; align-items: center; gap: 4px;
         font-family: 'Share Tech Mono', monospace;
@@ -315,50 +315,42 @@ checkCredentialsOnLoad() {
     `;
     document.head.appendChild(style);
 
-    // Pre-fill saved values
-    const savedKey    = localStorage.getItem("azure_key")    || "";
+    const savedKey = localStorage.getItem("azure_key") || "";
     const savedRegion = localStorage.getItem("azure_region") || "";
-    document.getElementById("settingsKey").value    = savedKey;
+    document.getElementById("settingsKey").value = savedKey;
     document.getElementById("settingsRegion").value = savedRegion;
 
-    // Close button
     document.getElementById("settingsClose").addEventListener("click", () => {
       this.hideSettingsModal();
     });
 
-    // Close on overlay click
     document.getElementById("settingsOverlay").addEventListener("click", (e) => {
       if (e.target === e.currentTarget) this.hideSettingsModal();
     });
 
-    // Toggle key visibility
     document.getElementById("toggleKeyVisibility").addEventListener("click", () => {
       const input = document.getElementById("settingsKey");
-      const btn   = document.getElementById("toggleKeyVisibility");
+      const btn = document.getElementById("toggleKeyVisibility");
       const isVisible = btn.dataset.visible === "true";
-      input.type     = isVisible ? "password" : "text";
+      input.type = isVisible ? "password" : "text";
       btn.dataset.visible = String(!isVisible);
-      btn.style.opacity   = isVisible ? "0.5" : "1";
+      btn.style.opacity = isVisible ? "0.5" : "1";
     });
 
-    // Save button
     document.getElementById("settingsSaveBtn").addEventListener("click", () => {
       this.saveSettings();
     });
 
-    // Test connection button
     document.getElementById("settingsTestBtn").addEventListener("click", () => {
       this.testConnection();
     });
 
-    // Enter key to save
     ["settingsKey", "settingsRegion"].forEach((id) => {
       document.getElementById(id).addEventListener("keydown", (e) => {
         if (e.key === "Enter") this.saveSettings();
       });
     });
 
-    // Wire Settings button in header
     const settingsBtn = document.querySelector('[data-tooltip="Settings"]');
     if (settingsBtn) {
       settingsBtn.onclick = () => this.showSettingsModal();
@@ -375,92 +367,98 @@ checkCredentialsOnLoad() {
   }
 
   saveSettings() {
-  const key = document.getElementById("settingsKey").value.trim();
-  const region = document.getElementById("settingsRegion").value.trim();
-  const status = document.getElementById("settingsSavedStatus");
+    const key = document.getElementById("settingsKey").value.trim();
+    const region = document.getElementById("settingsRegion").value.trim();
+    const status = document.getElementById("settingsSavedStatus");
 
-  if (!key) {
-    status.textContent = "⚠ Enter API key.";
-    status.className = "settings-status error";
-    document.getElementById("settingsKey").focus();
-    return;
+    if (!key) {
+      status.textContent = "⚠ Enter API key.";
+      status.className = "settings-status error";
+      document.getElementById("settingsKey").focus();
+      return;
+    }
+
+    if (!region) {
+      status.textContent = "⚠ Enter region, for example: eastasia";
+      status.className = "settings-status error";
+      document.getElementById("settingsRegion").focus();
+      return;
+    }
+
+    localStorage.setItem("azure_key", key);
+    localStorage.setItem("azure_region", region);
+
+    status.textContent = "✓ Saved locally. Now test connection.";
+    status.className = "settings-status success";
+
+    this.updateStatus(false, `Credentials saved [${region}]`);
+    this.showToast("Credentials saved. Test connection once.", "success");
+    this.updateSettingsIndicator(false);
   }
-
-  if (!region) {
-    status.textContent = "⚠ Enter region, for example: eastasia";
-    status.className = "settings-status error";
-    document.getElementById("settingsRegion").focus();
-    return;
-  }
-
-  localStorage.setItem("azure_key", key);
-  localStorage.setItem("azure_region", region);
-
-  status.textContent = "✓ Saved locally. Now test connection.";
-  status.className = "settings-status success";
-
-  this.updateStatus(false, `Credentials saved [${region}]`);
-  this.showToast("Credentials saved. Test connection once.", "success");
-  this.updateSettingsIndicator(false);
-}
 
   async testConnection() {
-  const key = document.getElementById("settingsKey").value.trim();
-  const region = document.getElementById("settingsRegion").value.trim();
-  const status = document.getElementById("settingsSavedStatus");
+    const key = document.getElementById("settingsKey").value.trim();
+    const region = document.getElementById("settingsRegion").value.trim();
+    const status = document.getElementById("settingsSavedStatus");
 
-  if (!key || !region) {
-    status.textContent = "⚠ Fill both key and region first.";
-    status.className = "settings-status error";
-    return;
-  }
+    if (!key || !region) {
+      status.textContent = "⚠ Fill both key and region first.";
+      status.className = "settings-status error";
+      return;
+    }
 
-  status.textContent = "🔌 Testing connection...";
-  status.className = "settings-status";
+    status.textContent = "🔌 Testing connection...";
+    status.className = "settings-status";
 
-  try {
-    const response = await fetch("/api/translate?api-version=3.0&to=hi", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Azure-Key": key,
-        "X-Azure-Region": region,
-      },
-      body: JSON.stringify([{ text: "Hello" }]),
-    });
+    try {
+      const response = await fetch("/api/translate?api-version=3.0&to=hi", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Azure-Key": key,
+          "X-Azure-Region": region,
+        },
+        body: JSON.stringify([{ text: "Hello" }]),
+      });
 
-    const data = await response.json().catch(() => ({}));
+      const data = await response.json().catch(() => ({}));
 
-    if (response.ok && data?.[0]?.translations?.[0]?.text) {
-      localStorage.setItem("azure_key", key);
-      localStorage.setItem("azure_region", region);
+      if (response.ok && data?.[0]?.translations?.[0]?.text) {
+        localStorage.setItem("azure_key", key);
+        localStorage.setItem("azure_region", region);
 
-      status.textContent = `✓ Connected successfully. Test output: ${data[0].translations[0].text}`;
-      status.className = "settings-status success";
+        status.textContent = `✓ Connected successfully. Test output: ${data[0].translations[0].text}`;
+        status.className = "settings-status success";
 
-      this.updateStatus(true, `Azure Connected ✓ [${region}]`);
-      this.showToast("Azure connection successful ✓", "success");
-      this.updateSettingsIndicator(true);
-    } else {
-      const msg = data?.error?.message || "Invalid credentials or wrong region";
-      status.textContent = `✗ Error ${response.status}: ${msg}`;
+        this.updateStatus(true, `Azure Connected ✓ [${region}]`);
+        this.showToast("Azure connection successful ✓", "success");
+        this.updateSettingsIndicator(true);
+      } else {
+        const msg = data?.error?.message || "Invalid credentials or wrong region";
+        status.textContent = `✗ Error ${response.status}: ${msg}`;
+        status.className = "settings-status error";
+
+        this.updateStatus(false, "Azure auth failed — check key/region");
+      }
+    } catch (e) {
+      status.textContent = "✗ Proxy server not running. Start: node proxy-server.js";
       status.className = "settings-status error";
 
-      this.updateStatus(false, "Azure auth failed — check key/region");
+      this.updateStatus(false, "Proxy server offline");
     }
-  } catch (e) {
-    status.textContent = "✗ Proxy server not running. Start: node proxy-server.js";
-    status.className = "settings-status error";
-
-    this.updateStatus(false, "Proxy server offline");
   }
-}
+
   updateSettingsIndicator(connected) {
     const settingsBtn = document.querySelector('[data-tooltip="Settings"]');
-    if (settingsBtn && connected) {
-      settingsBtn.innerHTML = "⚙";
-      settingsBtn.title = "Settings (Connected ✓)";
+    if (!settingsBtn) return;
+
+    settingsBtn.innerHTML = "⚙";
+    settingsBtn.title = connected ? "Settings (Connected ✓)" : "Settings";
+
+    if (connected) {
       settingsBtn.style.color = "#00ff88";
+    } else {
+      settingsBtn.style.color = "";
     }
   }
 
@@ -469,21 +467,31 @@ checkCredentialsOnLoad() {
     const langs = AZURE_CONFIG.supportedLanguages;
 
     const autoOption = `
-      <div class="lang-option ${this.sourceLang.code === 'auto' ? 'active' : ''}"
+      <div class="lang-option ${this.sourceLang.code === "auto" ? "active" : ""}"
            data-code="auto" data-name="Auto-Detect" data-flag="🔍" data-pane="source">
         <span>🔍</span><span>Auto-Detect</span>
       </div>`;
 
-    this.els.sourceLangDD.innerHTML = autoOption + langs.map((l) => `
+    this.els.sourceLangDD.innerHTML =
+      autoOption +
+      langs
+        .map(
+          (l) => `
       <div class="lang-option" data-code="${l.code}" data-name="${l.name}" data-flag="${l.flag}" data-pane="source">
         <span>${l.flag}</span><span>${l.name}</span>
-      </div>`).join("");
+      </div>`
+        )
+        .join("");
 
-    this.els.targetLangDD.innerHTML = langs.map((l) => `
-      <div class="lang-option ${l.code === this.targetLang.code ? 'active' : ''}"
+    this.els.targetLangDD.innerHTML = langs
+      .map(
+        (l) => `
+      <div class="lang-option ${l.code === this.targetLang.code ? "active" : ""}"
            data-code="${l.code}" data-name="${l.name}" data-flag="${l.flag}" data-pane="target">
         <span>${l.flag}</span><span>${l.name}</span>
-      </div>`).join("");
+      </div>`
+      )
+      .join("");
 
     this.updateLangButtons();
   }
@@ -495,10 +503,12 @@ checkCredentialsOnLoad() {
       this.els.sourceLangBtn.querySelector(".lang-code").textContent =
         this.sourceLang.code === "auto" ? "AUTO" : this.sourceLang.code.toUpperCase();
     }
+
     if (this.els.targetLangBtn) {
       this.els.targetLangBtn.querySelector(".lang-flag").textContent = this.targetLang.flag;
       this.els.targetLangBtn.querySelector(".lang-name").textContent = this.targetLang.name;
-      this.els.targetLangBtn.querySelector(".lang-code").textContent = this.targetLang.code.toUpperCase();
+      this.els.targetLangBtn.querySelector(".lang-code").textContent =
+        this.targetLang.code.toUpperCase();
     }
   }
 
@@ -543,43 +553,56 @@ checkCredentialsOnLoad() {
       });
     }
 
-  // Single clean click handler for dropdown options + outside close
-  document.addEventListener("click", (e) => {
-    const opt = e.target.closest(".lang-option");
+    document.addEventListener("click", (e) => {
+      const opt = e.target.closest(".lang-option");
 
-    if (opt) {
-      e.stopPropagation();
-      const pane = opt.dataset.pane;
-      const lang = {
-        code: opt.dataset.code,
-        name: opt.dataset.name,
-        flag: opt.dataset.flag,
-      };
+      if (opt) {
+        e.stopPropagation();
 
-      if (pane === "source") {
-        this.sourceLang = lang;
-        this.els.sourceLangDD.querySelectorAll(".lang-option").forEach((o) =>
-          o.classList.toggle("active", o.dataset.code === lang.code)
-        );
-      } else {
-        this.targetLang = lang;
-        this.els.targetLangDD.querySelectorAll(".lang-option").forEach((o) =>
-          o.classList.toggle("active", o.dataset.code === lang.code)
-        );
+        const pane = opt.dataset.pane;
+        const lang = {
+          code: opt.dataset.code,
+          name: opt.dataset.name,
+          flag: opt.dataset.flag,
+        };
+
+        if (pane === "source") {
+          this.sourceLang = lang;
+          this.els.sourceLangDD.querySelectorAll(".lang-option").forEach((o) =>
+            o.classList.toggle("active", o.dataset.code === lang.code)
+          );
+        } else {
+          this.targetLang = lang;
+          this.els.targetLangDD.querySelectorAll(".lang-option").forEach((o) =>
+            o.classList.toggle("active", o.dataset.code === lang.code)
+          );
+        }
+
+        this.updateLangButtons();
+        this.closeAllDropdowns();
+        return;
       }
-      this.updateLangButtons();
-      this.closeAllDropdowns();
-      return;
-    }
 
-    // Close dropdowns if clicked outside
-    if (
-      !e.target.closest(".lang-selector") &&
-      !e.target.closest(".lang-dropdown")
-    ) {
-      this.closeAllDropdowns();
-    }
-  });
+      if (!e.target.closest(".lang-selector") && !e.target.closest(".lang-dropdown")) {
+        this.closeAllDropdowns();
+      }
+    });
+
+    [this.els.sourceLangDD, this.els.targetLangDD].forEach((dd) => {
+      if (!dd) return;
+
+      dd.addEventListener(
+        "wheel",
+        (e) => {
+          e.stopPropagation();
+        },
+        { passive: true }
+      );
+
+      dd.addEventListener("click", (e) => {
+        e.stopPropagation();
+      });
+    });
 
     if (this.els.copySourceBtn) {
       this.els.copySourceBtn.addEventListener("click", () => {
@@ -606,8 +629,8 @@ checkCredentialsOnLoad() {
       });
     }
 
-    // Close dropdowns on scroll (since we use position:fixed)
     window.addEventListener("scroll", () => this.closeAllDropdowns(), { passive: true });
+    window.addEventListener("resize", () => this.closeAllDropdowns());
 
     if (this.els.speakOutputBtn) {
       this.els.speakOutputBtn.addEventListener("click", () => this.speakOutput());
@@ -622,8 +645,7 @@ checkCredentialsOnLoad() {
       return;
     }
 
-    // Check credentials before translating
-    const key    = localStorage.getItem("azure_key")    || "";
+    const key = localStorage.getItem("azure_key") || "";
     const region = localStorage.getItem("azure_region") || "";
     if (!key || !region) {
       this.showToast("Pehle ⚙ Settings mein Azure Key enter karein!", "error");
@@ -650,13 +672,15 @@ checkCredentialsOnLoad() {
     const text = this.els.sourceInput?.value?.trim();
     if (!text || text.length < 3) return;
     const key = localStorage.getItem("azure_key") || "";
-    if (!key) return; // silent in auto mode
+    if (!key) return;
     await this.doTranslate();
   }
 
   onTranslationSuccess(result, sourceText, elapsedMs) {
     if (this.els.outputText) {
-      this.els.outputText.innerHTML = `<span class="typing-cursor">${this.escapeHtml(result.translatedText)}</span>`;
+      this.els.outputText.innerHTML = `<span class="typing-cursor">${this.escapeHtml(
+        result.translatedText
+      )}</span>`;
       this.els.outputText.classList.add("translate-flash");
       setTimeout(() => this.els.outputText.classList.remove("translate-flash"), 500);
     }
@@ -665,13 +689,15 @@ checkCredentialsOnLoad() {
       const lang = AZURE_CONFIG.supportedLanguages.find((l) => l.code === result.sourceLanguage);
       if (this.els.detectedLang) {
         this.els.detectedLang.classList.add("visible");
-        this.els.detectedText.textContent = `Detected: ${lang ? lang.flag + " " + lang.name : result.sourceLanguage}`;
+        this.els.detectedText.textContent = `Detected: ${
+          lang ? lang.flag + " " + lang.name : result.sourceLanguage
+        }`;
       }
     }
 
     if (result.sourceConfidence !== null && this.els.confidenceBar) {
-      this.els.confidenceBar.style.width    = result.sourceConfidence + "%";
-      this.els.confidenceValue.textContent  = result.sourceConfidence + "%";
+      this.els.confidenceBar.style.width = result.sourceConfidence + "%";
+      this.els.confidenceValue.textContent = result.sourceConfidence + "%";
     }
 
     this.totalTranslations++;
@@ -681,38 +707,40 @@ checkCredentialsOnLoad() {
     this.updateMetrics(elapsedMs);
 
     this.requestData = [...this.requestData.slice(1), this.totalTranslations];
-    this.charData    = [...this.charData.slice(1),    this.totalChars];
+    this.charData = [...this.charData.slice(1), this.totalChars];
+
     if (window.dashboardCharts) {
       window.dashboardCharts.drawSparkline("reqSparkline", this.requestData, "cyan");
-      window.dashboardCharts.drawSparkline("charSparkline", this.charData,   "blue");
+      window.dashboardCharts.drawSparkline("charSparkline", this.charData, "blue");
     }
   }
 
   onTranslationError(err) {
-  const msg = err.message || "Translation failed";
-  this.showToast(msg.substring(0, 120), "error");
-  console.error("Translation error:", err);
+    const msg = err.message || "Translation failed";
+    this.showToast(msg.substring(0, 120), "error");
+    console.error("Translation error:", err);
 
-  if (this.els.outputText) {
-    this.els.outputText.innerHTML =
-      `<span style="color:var(--neon-pink);font-size:0.85rem;">⚠ ${this.escapeHtml(msg)}</span>`;
-  }
+    if (this.els.outputText) {
+      this.els.outputText.innerHTML = `<span style="color:var(--neon-pink);font-size:0.85rem;">⚠ ${this.escapeHtml(
+        msg
+      )}</span>`;
+    }
 
-  if (
-    msg.includes("401") ||
-    msg.includes("Unauthorized") ||
-    msg.includes("key") ||
-    msg.includes("region") ||
-    msg.includes("Settings")
-  ) {
-    this.updateStatus(false, "Azure auth failed — open Settings");
-    setTimeout(() => this.showSettingsModal(), 500);
-  } else if (msg.includes("Proxy server")) {
-    this.updateStatus(false, "Proxy server offline");
-  } else {
-    this.updateStatus(false, "Translation failed");
+    if (
+      msg.includes("401") ||
+      msg.includes("Unauthorized") ||
+      msg.includes("key") ||
+      msg.includes("region") ||
+      msg.includes("Settings")
+    ) {
+      this.updateStatus(false, "Azure auth failed — open Settings");
+      setTimeout(() => this.showSettingsModal(), 500);
+    } else if (msg.includes("Proxy server")) {
+      this.updateStatus(false, "Proxy server offline");
+    } else {
+      this.updateStatus(false, "Translation failed");
+    }
   }
-}
 
   /* ── UI STATE ── */
   setTranslating(state) {
@@ -733,9 +761,9 @@ checkCredentialsOnLoad() {
     if (this.els.outputText) {
       this.els.outputText.innerHTML = `<span class="output-placeholder">Translation appears here...</span>`;
     }
-    if (this.els.confidenceBar)   this.els.confidenceBar.style.width = "0%";
+    if (this.els.confidenceBar) this.els.confidenceBar.style.width = "0%";
     if (this.els.confidenceValue) this.els.confidenceValue.textContent = "0%";
-    if (this.els.detectedLang)    this.els.detectedLang.classList.remove("visible");
+    if (this.els.detectedLang) this.els.detectedLang.classList.remove("visible");
   }
 
   updateCharCounter() {
@@ -743,8 +771,8 @@ checkCredentialsOnLoad() {
     const max = AZURE_CONFIG.rateLimit.charactersPerRequest;
     if (this.els.charCounter) {
       this.els.charCounter.textContent = `${len} / ${max}`;
-      this.els.charCounter.className   = "char-counter";
-      if      (len > max * 0.9) this.els.charCounter.classList.add("danger");
+      this.els.charCounter.className = "char-counter";
+      if (len > max * 0.9) this.els.charCounter.classList.add("danger");
       else if (len > max * 0.7) this.els.charCounter.classList.add("warning");
     }
   }
@@ -752,6 +780,7 @@ checkCredentialsOnLoad() {
   /* ── SWAP LANGUAGES ── */
   swapLanguages() {
     if (this.sourceLang.code === "auto") return;
+
     const tmp = this.sourceLang;
     this.sourceLang = this.targetLang;
     this.targetLang = tmp;
@@ -761,6 +790,7 @@ checkCredentialsOnLoad() {
       this.els.sourceInput.value = outText;
       this.clearOutput();
     }
+
     this.updateLangButtons();
     this.updateCharCounter();
     this.showToast(`Swapped: ${this.sourceLang.flag} ↔ ${this.targetLang.flag}`, "success");
@@ -768,21 +798,12 @@ checkCredentialsOnLoad() {
 
   /* ── DROPDOWN ── */
   toggleDropdown(pane) {
-    const dd = pane === "source"
-      ? this.els.sourceLangDD
-      : this.els.targetLangDD;
-
-    const btn = pane === "source"
-      ? this.els.sourceLangBtn
-      : this.els.targetLangBtn;
-
-    const other = pane === "source"
-      ? this.els.targetLangDD
-      : this.els.sourceLangDD;
+    const dd = pane === "source" ? this.els.sourceLangDD : this.els.targetLangDD;
+    const btn = pane === "source" ? this.els.sourceLangBtn : this.els.targetLangBtn;
+    const other = pane === "source" ? this.els.targetLangDD : this.els.sourceLangDD;
 
     if (other) other.classList.remove("open");
-
-    if (!dd) return;
+    if (!dd || !btn) return;
 
     const isOpen = dd.classList.contains("open");
     if (isOpen) {
@@ -790,30 +811,60 @@ checkCredentialsOnLoad() {
       return;
     }
 
-    // Position dropdown below the button using fixed coords
-    if (btn) {
-      const rect = btn.getBoundingClientRect();
-      dd.style.top  = (rect.bottom + 6) + "px";
-      dd.style.left = rect.left + "px";
-      dd.style.width = Math.max(rect.width, 220) + "px";
-    }
+    const rect = btn.getBoundingClientRect();
+    const dropdownWidth = Math.max(rect.width, 220);
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const margin = 12;
 
+    dd.style.width = dropdownWidth + "px";
+
+    let left = rect.left;
+    if (left + dropdownWidth > viewportWidth - margin) {
+      left = viewportWidth - dropdownWidth - margin;
+    }
+    if (left < margin) left = margin;
+
+    dd.style.left = left + "px";
     dd.classList.add("open");
+
+    requestAnimationFrame(() => {
+      const actualHeight = dd.offsetHeight || 260;
+
+      let top = rect.bottom + 6;
+      const spaceBelow = viewportHeight - rect.bottom;
+      const spaceAbove = rect.top;
+
+      if (spaceBelow < actualHeight && spaceAbove > spaceBelow) {
+        top = Math.max(margin, rect.top - actualHeight - 6);
+      }
+
+      if (top + actualHeight > viewportHeight - margin) {
+        top = Math.max(margin, viewportHeight - actualHeight - margin);
+      }
+
+      dd.style.top = top + "px";
+    });
   }
+
   closeAllDropdowns() {
-    this.els.sourceLangDD?.classList.remove("open");
-    this.els.targetLangDD?.classList.remove("open");
+    [this.els.sourceLangDD, this.els.targetLangDD].forEach((dd) => {
+      if (!dd) return;
+      dd.classList.remove("open");
+      dd.style.top = "";
+      dd.style.left = "";
+    });
   }
 
   /* ── HISTORY ── */
   addToHistory(source, translation, detectedLang) {
     const entry = {
-      id:          Date.now(),
-      source:      source.substring(0, 60),
+      id: Date.now(),
+      source: source.substring(0, 60),
       translation: translation.substring(0, 60),
-      sourceLang:  detectedLang || this.sourceLang.code,
-      targetLang:  this.targetLang.code,
-      targetFlag:  this.targetLang.flag,
+      sourceLang: detectedLang || this.sourceLang.code,
+      targetLang: this.targetLang.code,
+      targetFlag: this.targetLang.flag,
       time: new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }),
     };
     this.history.unshift(entry);
@@ -823,43 +874,56 @@ checkCredentialsOnLoad() {
 
   renderHistory() {
     if (!this.els.historyList) return;
+
     if (this.history.length === 0) {
-      this.els.historyList.innerHTML =
-        `<div style="color:var(--text-muted);font-size:0.8rem;padding:1rem;text-align:center;">No translations yet</div>`;
+      this.els.historyList.innerHTML = `<div style="color:var(--text-muted);font-size:0.8rem;padding:1rem;text-align:center;">No translations yet</div>`;
       return;
     }
-    this.els.historyList.innerHTML = this.history.slice(0, 8).map((h) => `
+
+    this.els.historyList.innerHTML = this.history
+      .slice(0, 8)
+      .map(
+        (h) => `
       <div class="history-item card-3d" onclick="app.loadHistoryItem(${h.id})">
         <div class="history-langs">${h.sourceLang.toUpperCase()} → ${h.targetFlag} ${h.targetLang.toUpperCase()}</div>
         <div class="history-preview">${this.escapeHtml(h.source)}</div>
         <div class="history-time">${h.time}</div>
-      </div>`).join("");
+      </div>`
+      )
+      .join("");
   }
 
   loadHistoryItem(id) {
     const item = this.history.find((h) => h.id === id);
     if (!item) return;
     if (this.els.sourceInput) this.els.sourceInput.value = item.source;
-    if (this.els.outputText)  this.els.outputText.textContent = item.translation;
+    if (this.els.outputText) this.els.outputText.textContent = item.translation;
   }
 
   /* ── LANG USAGE ── */
   trackLangUsage(lang) {
     this.langUsage[lang.code] = (this.langUsage[lang.code] || 0) + 1;
     this.renderLangStats();
+
     const uniqueLangs = Object.keys(this.langUsage).length;
     if (this.els.metricLanguages) this.els.metricLanguages.textContent = uniqueLangs;
-    if (this.els.statLanguages)   this.els.statLanguages.textContent   = uniqueLangs;
+    if (this.els.statLanguages) this.els.statLanguages.textContent = uniqueLangs;
   }
 
   renderLangStats() {
     if (!this.els.langStats) return;
-    const sorted = Object.entries(this.langUsage).sort((a, b) => b[1] - a[1]).slice(0, 6);
+
+    const sorted = Object.entries(this.langUsage)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6);
+
     const max = sorted[0]?.[1] || 1;
-    this.els.langStats.innerHTML = sorted.map(([code, count]) => {
-      const lang = AZURE_CONFIG.supportedLanguages.find((l) => l.code === code);
-      const pct  = Math.round((count / max) * 100);
-      return `
+
+    this.els.langStats.innerHTML = sorted
+      .map(([code, count]) => {
+        const lang = AZURE_CONFIG.supportedLanguages.find((l) => l.code === code);
+        const pct = Math.round((count / max) * 100);
+        return `
         <div class="lang-stat-item">
           <div class="lang-stat-flag">${lang?.flag || "🌐"}</div>
           <div class="lang-stat-info">
@@ -870,19 +934,21 @@ checkCredentialsOnLoad() {
           </div>
           <div class="lang-stat-count">${count}</div>
         </div>`;
-    }).join("");
+      })
+      .join("");
   }
 
   /* ── METRICS ── */
   updateMetrics(elapsedMs) {
     if (this.els.metricTranslations) this.els.metricTranslations.textContent = this.totalTranslations;
-    if (this.els.statTranslations)   this.els.statTranslations.textContent   = this.totalTranslations;
+    if (this.els.statTranslations) this.els.statTranslations.textContent = this.totalTranslations;
+
     if (this.els.metricChars) {
-      this.els.metricChars.textContent = this.totalChars >= 1000
-        ? (this.totalChars / 1000).toFixed(1) + "K"
-        : this.totalChars;
+      this.els.metricChars.textContent =
+        this.totalChars >= 1000 ? (this.totalChars / 1000).toFixed(1) + "K" : this.totalChars;
     }
-    if (this.els.statChars)    this.els.statChars.textContent    = this.totalChars;
+
+    if (this.els.statChars) this.els.statChars.textContent = this.totalChars;
     if (this.els.metricAvgTime) this.els.metricAvgTime.textContent = elapsedMs + "ms";
   }
 
@@ -890,6 +956,7 @@ checkCredentialsOnLoad() {
   speakOutput() {
     const text = this.els.outputText?.innerText;
     if (!text || text.includes("Translation appears here")) return;
+
     if ("speechSynthesis" in window) {
       window.speechSynthesis.cancel();
       const utter = new SpeechSynthesisUtterance(text);
@@ -905,13 +972,15 @@ checkCredentialsOnLoad() {
   /* ── TOAST ── */
   showToast(message, type = "info") {
     if (!this.els.toastContainer) return;
-    const icon  = type === "success" ? "✓" : type === "error" ? "✗" : "ℹ";
+
+    const icon = type === "success" ? "✓" : type === "error" ? "✗" : "ℹ";
     const toast = document.createElement("div");
     toast.className = `toast ${type}`;
     toast.innerHTML = `<span>${icon}</span><span>${this.escapeHtml(message)}</span>`;
     this.els.toastContainer.appendChild(toast);
+
     setTimeout(() => {
-      toast.style.opacity   = "0";
+      toast.style.opacity = "0";
       toast.style.transform = "translateX(30px)";
       toast.style.transition = "all 0.3s";
       setTimeout(() => toast.remove(), 300);
@@ -920,7 +989,7 @@ checkCredentialsOnLoad() {
 
   /* ── STATUS ── */
   updateStatus(online, text) {
-    if (this.els.statusDot)  this.els.statusDot.classList.toggle("offline", !online);
+    if (this.els.statusDot) this.els.statusDot.classList.toggle("offline", !online);
     if (this.els.statusText) this.els.statusText.textContent = text;
   }
 
@@ -941,8 +1010,8 @@ checkCredentialsOnLoad() {
     const elements = document.querySelectorAll(".metric-number[data-target]");
     elements.forEach((el) => {
       const target = parseInt(el.dataset.target);
-      let current  = 0;
-      const step   = target / 60;
+      let current = 0;
+      const step = target / 60;
       const interval = setInterval(() => {
         current = Math.min(current + step, target);
         el.textContent = Math.round(current);
@@ -955,21 +1024,26 @@ checkCredentialsOnLoad() {
   initCharts() {
     setTimeout(() => {
       if (window.dashboardCharts) {
-        const demoReq  = [0,2,3,5,4,7,6,8,9,11,10,12,15,14,18,16,20,22,21,24];
-        const demoChar = [0,50,120,200,180,250,230,310,290,380,360,420,500,480,560,540,620,680,650,720];
-        window.dashboardCharts.drawSparkline("reqSparkline", demoReq,  "cyan");
+        const demoReq = [0, 2, 3, 5, 4, 7, 6, 8, 9, 11, 10, 12, 15, 14, 18, 16, 20, 22, 21, 24];
+        const demoChar = [0, 50, 120, 200, 180, 250, 230, 310, 290, 380, 360, 420, 500, 480, 560, 540, 620, 680, 650, 720];
+
+        window.dashboardCharts.drawSparkline("reqSparkline", demoReq, "cyan");
         window.dashboardCharts.drawSparkline("charSparkline", demoChar, "blue");
-        window.dashboardCharts.drawDonut("langDonut", [
-          { value: 35, color: "#00f5ff" },
-          { value: 25, color: "#0080ff" },
-          { value: 20, color: "#00ff88" },
-          { value: 12, color: "#ffd700" },
-          { value: 8,  color: "#8b00ff" },
-        ], "LANG");
+        window.dashboardCharts.drawDonut(
+          "langDonut",
+          [
+            { value: 35, color: "#00f5ff" },
+            { value: 25, color: "#0080ff" },
+            { value: 20, color: "#00ff88" },
+            { value: 12, color: "#ffd700" },
+            { value: 8, color: "#8b00ff" },
+          ],
+          "LANG"
+        );
         window.dashboardCharts.drawBarChart(
           "weeklyBar",
-          ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"],
-          [12,19,8,24,17,31,22],
+          ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+          [12, 19, 8, 24, 17, 31, 22],
           "cyan"
         );
       }
