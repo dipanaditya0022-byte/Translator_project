@@ -1,357 +1,481 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Azure Translator — Neural Dashboard</title>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Azure Translator — Neural Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/3d.css" />
+  <link rel="stylesheet" href="css/animations.css" />
 
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap"
-      rel="stylesheet"
-    />
+  <style>
+    /* ── SETTINGS MODAL ── */
+    .modal-overlay {
+      position: fixed; inset: 0; z-index: 2000;
+      background: rgba(2,4,8,0.92);
+      backdrop-filter: blur(10px);
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.3s;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
 
-    <!-- Stylesheets (order matters) -->
-    <link rel="stylesheet" href="css/style.css" />
-    <link rel="stylesheet" href="css/3d.css" />
-    <link rel="stylesheet" href="css/animations.css" />
-  </head>
+    .modal-box {
+      background: #061018;
+      border: 1px solid rgba(0,245,255,0.4);
+      border-radius: 16px;
+      padding: 2rem;
+      width: 480px;
+      max-width: 95vw;
+      box-shadow: 0 0 60px rgba(0,245,255,0.15);
+    }
+    .modal-title {
+      font-family: 'Orbitron', monospace;
+      font-size: 0.9rem;
+      letter-spacing: 3px;
+      color: #00f5ff;
+      text-shadow: 0 0 10px rgba(0,245,255,0.5);
+      margin-bottom: 1.6rem;
+    }
+    .modal-field { margin-bottom: 1.2rem; }
+    .modal-label {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.72rem;
+      color: #3a6a84;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 0.4rem;
+      display: block;
+    }
+    .modal-input {
+      width: 100%;
+      background: #040c14;
+      border: 1px solid rgba(0,245,255,0.2);
+      border-radius: 8px;
+      color: #e0f4ff;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.82rem;
+      padding: 0.7rem 1rem;
+      outline: none;
+      transition: border-color 0.3s;
+    }
+    .modal-input:focus { border-color: rgba(0,245,255,0.7); }
+    .modal-hint {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.68rem;
+      color: #3a6a84;
+      margin-top: 0.3rem;
+    }
+    .modal-actions { display: flex; gap: 1rem; margin-top: 1.6rem; }
+    .btn-test {
+      flex: 1;
+      padding: 0.75rem;
+      background: transparent;
+      border: 1px solid rgba(0,245,255,0.4);
+      border-radius: 8px;
+      color: #00f5ff;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .btn-test:hover { background: rgba(0,245,255,0.1); }
+    .btn-save {
+      flex: 1;
+      padding: 0.75rem;
+      background: linear-gradient(135deg, #00f5ff, #0080ff);
+      border: none;
+      border-radius: 8px;
+      color: #020408;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .btn-save:hover { transform: translateY(-2px); box-shadow: 0 0 20px rgba(0,245,255,0.4); }
+    .modal-status {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.75rem;
+      margin-top: 1rem;
+      padding: 0.6rem 1rem;
+      border-radius: 6px;
+      display: none;
+    }
+    .modal-status.success { display:block; color:#00ff88; background:rgba(0,255,136,0.08); border:1px solid rgba(0,255,136,0.3); }
+    .modal-status.error   { display:block; color:#ff0080; background:rgba(255,0,128,0.08); border:1px solid rgba(255,0,128,0.3); }
+    .modal-status.loading { display:block; color:#00f5ff; background:rgba(0,245,255,0.05); border:1px solid rgba(0,245,255,0.2); }
 
-  <body class="scanlines">
-    <!-- ═══════════════════════════════════════
-         PARTICLE BACKGROUND
-    ════════════════════════════════════════ -->
-    <canvas id="particleCanvas"></canvas>
+    /* quick lang buttons */
+    .quick-lang-btn {
+      display:flex; flex-direction:column; align-items:center; gap:4px;
+      padding:0.7rem 0.4rem;
+      background:var(--bg-deep);
+      border:1px solid var(--border-dim);
+      border-radius:var(--radius-md);
+      cursor:pointer; transition:var(--transition); color:var(--text-primary);
+    }
+    .quick-lang-btn:hover {
+      border-color:var(--neon-cyan); background:var(--bg-hover);
+      transform:translateY(-3px); box-shadow:var(--shadow-cyan);
+    }
+  </style>
+</head>
+<body class="scanlines">
 
-    <!-- ═══════════════════════════════════════
-         TOAST NOTIFICATIONS
-    ════════════════════════════════════════ -->
-    <div id="toastContainer" class="toast-container"></div>
+<canvas id="particleCanvas"></canvas>
+<div id="toastContainer" class="toast-container"></div>
 
-    <!-- ═══════════════════════════════════════
-         APP WRAPPER
-    ════════════════════════════════════════ -->
-    <div id="app">
-      <!-- ── HEADER ── -->
-      <header class="dashboard-header">
-        <div class="header-logo">
-          <div class="logo-icon">🌐</div>
-          <div>
-            <div class="logo-text glitch" data-text="AZURE TRANSLATOR">AZURE TRANSLATOR</div>
-            <div class="logo-sub">Neural Language Intelligence v2.0</div>
+<!-- ══ SETTINGS MODAL ══════════════════════════════════ -->
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal-box">
+    <div class="modal-title">⚙ AZURE SETTINGS</div>
+
+    <div class="modal-field">
+      <label class="modal-label">Azure API Key</label>
+      <input class="modal-input" id="inputKey" type="password" placeholder="Apni Azure key paste karo (84 characters)" />
+      <div class="modal-hint">Azure Portal → transl091 / adity69 → Keys and Endpoint → KEY 1</div>
+    </div>
+
+    <div class="modal-field">
+      <label class="modal-label">Region</label>
+      <input class="modal-input" id="inputRegion" type="text" placeholder="eastasia" value="eastasia" />
+      <div class="modal-hint">Azure Portal mein Location/Region field se copy karo</div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-test" onclick="testConnection()">🔌 Test</button>
+      <button class="btn-save" onclick="saveSettings()">💾 Save & Close</button>
+    </div>
+    <div class="modal-status" id="modalStatus"></div>
+  </div>
+</div>
+
+<!-- ══ APP ══════════════════════════════════════════════ -->
+<div id="app">
+
+  <!-- HEADER -->
+  <header class="dashboard-header">
+    <div class="header-logo">
+      <div class="logo-icon">🌐</div>
+      <div>
+        <div class="logo-text glitch" data-text="AZURE TRANSLATOR">AZURE TRANSLATOR</div>
+        <div class="logo-sub">Neural Language Intelligence v2.0</div>
+      </div>
+    </div>
+
+    <div class="header-stats">
+      <div class="stat-pill"><span class="stat-value" id="statTranslations">0</span><span class="stat-label">Translations</span></div>
+      <div class="stat-pill"><span class="stat-value" id="statChars">0</span><span class="stat-label">Characters</span></div>
+      <div class="stat-pill"><span class="stat-value" id="statLanguages">0</span><span class="stat-label">Languages</span></div>
+      <div class="stat-pill"><span class="stat-value" id="statUptime">00:00:00</span><span class="stat-label">Uptime</span></div>
+    </div>
+
+    <div class="header-controls">
+      <button class="control-btn" data-tooltip="Settings" onclick="openSettings()">⚙</button>
+      <button class="control-btn" data-tooltip="Fullscreen" onclick="document.documentElement.requestFullscreen?.()">⛶</button>
+      <button class="control-btn" data-tooltip="Clear History" onclick="app.history=[]; app.renderHistory()">🗑</button>
+    </div>
+  </header>
+
+  <!-- MAIN -->
+  <main class="main-content">
+
+    <!-- METRICS ROW -->
+    <div class="metrics-row">
+      <div class="metric-card card-3d holo-border fade-in-up" data-accent="cyan">
+        <div class="metric-icon">⚡</div>
+        <div class="metric-number pulse-glow" id="metricTranslations">0</div>
+        <div class="metric-title">Total Translations</div>
+        <div class="metric-trend">↑ Live tracking</div>
+        <canvas id="reqSparkline" style="width:100%;height:40px;margin-top:0.5rem;"></canvas>
+      </div>
+      <div class="metric-card card-3d holo-border fade-in-up" data-accent="blue">
+        <div class="metric-icon">📝</div>
+        <div class="metric-number" id="metricChars">0</div>
+        <div class="metric-title">Characters Processed</div>
+        <div class="metric-trend">↑ Session total</div>
+        <canvas id="charSparkline" style="width:100%;height:40px;margin-top:0.5rem;"></canvas>
+      </div>
+      <div class="metric-card card-3d holo-border fade-in-up" data-accent="green">
+        <div class="metric-icon">🗺</div>
+        <div class="metric-number" id="metricLanguages">20</div>
+        <div class="metric-title">Languages Available</div>
+        <div class="metric-trend">✓ Azure Cognitive API</div>
+      </div>
+      <div class="metric-card card-3d holo-border fade-in-up" data-accent="gold">
+        <div class="metric-icon">⏱</div>
+        <div class="metric-number" id="metricAvgTime">—</div>
+        <div class="metric-title">Last Response Time</div>
+        <div class="metric-trend">↓ Real-time latency</div>
+      </div>
+    </div>
+
+    <!-- TRANSLATOR SECTION -->
+    <div class="translator-section fade-in-up hex-bg">
+
+      <!-- SOURCE PANE -->
+      <div class="translator-pane">
+        <div class="pane-header">
+          <div class="lang-selector" id="sourceLangBtn" style="position:relative;">
+            <span class="lang-flag">🔍</span>
+            <span class="lang-name">Auto-Detect</span>
+            <span class="lang-code">AUTO</span>
+            <span style="margin-left:auto;color:var(--text-muted);font-size:12px;">▾</span>
+            <div class="lang-dropdown" id="sourceLangDropdown"></div>
+          </div>
+          <div class="pane-actions">
+            <button class="action-btn" id="copySourceBtn" data-tooltip="Copy source">⧉</button>
+            <button class="action-btn" id="clearSourceBtn" data-tooltip="Clear">✕</button>
           </div>
         </div>
+        <div class="detected-lang" id="detectedLang">
+          <span class="detected-dot"></span>
+          <span id="detectedText">Detecting language...</span>
+        </div>
+        <div class="text-area-wrapper">
+          <textarea id="sourceInput" class="translator-input"
+            placeholder="Type or paste text to translate...  (Ctrl+Enter to translate)"
+            maxlength="5000"></textarea>
+          <span class="char-counter" id="charCounter">0 / 5000</span>
+        </div>
+      </div>
 
-        <div class="header-stats">
-          <div class="stat-pill">
-            <span class="stat-value" id="statTranslations">0</span>
-            <span class="stat-label">Translations</span>
+      <!-- MIDDLE -->
+      <div class="translator-middle">
+        <button class="swap-btn" id="swapBtn" data-tooltip="Swap languages">⇄</button>
+        <button class="translate-btn ripple-btn" id="translateBtn" data-tooltip="Translate (Ctrl+Enter)">⚡</button>
+      </div>
+
+      <!-- TARGET PANE -->
+      <div class="translator-pane">
+        <div class="pane-header">
+          <div class="lang-selector" id="targetLangBtn" style="position:relative;">
+            <span class="lang-flag">🇮🇳</span>
+            <span class="lang-name">Hindi</span>
+            <span class="lang-code">HI</span>
+            <span style="margin-left:auto;color:var(--text-muted);font-size:12px;">▾</span>
+            <div class="lang-dropdown" id="targetLangDropdown"></div>
           </div>
-          <div class="stat-pill">
-            <span class="stat-value" id="statChars">0</span>
-            <span class="stat-label">Characters</span>
-          </div>
-          <div class="stat-pill">
-            <span class="stat-value" id="statLanguages">0</span>
-            <span class="stat-label">Languages</span>
-          </div>
-          <div class="stat-pill">
-            <span class="stat-value" id="statUptime">00:00:00</span>
-            <span class="stat-label">Uptime</span>
+          <div class="pane-actions">
+            <button class="action-btn" id="copyOutputBtn" data-tooltip="Copy translation">⧉</button>
+            <button class="action-btn" id="speakOutputBtn" data-tooltip="Text-to-Speech">🔊</button>
           </div>
         </div>
-
-        <div class="header-controls">
-          <button class="control-btn" data-tooltip="Settings" onclick="app.showToast('Settings coming soon', 'info')">⚙</button>
-          <button class="control-btn" data-tooltip="Fullscreen" onclick="document.documentElement.requestFullscreen?.()">⛶</button>
-          <button class="control-btn" data-tooltip="Clear History" onclick="app.history=[]; app.renderHistory()">🗑</button>
-        </div>
-      </header>
-
-      <!-- ── MAIN CONTENT ── -->
-      <main class="main-content">
-
-        <!-- ─── METRICS ROW ─── -->
-        <div class="metrics-row">
-          <div class="metric-card card-3d holo-border fade-in-up" data-accent="cyan">
-            <div class="metric-icon">⚡</div>
-            <div class="metric-number pulse-glow" id="metricTranslations">0</div>
-            <div class="metric-title">Total Translations</div>
-            <div class="metric-trend">↑ Live tracking</div>
-            <canvas id="reqSparkline" style="width:100%;height:40px;margin-top:0.5rem;"></canvas>
-          </div>
-
-          <div class="metric-card card-3d holo-border fade-in-up" data-accent="blue">
-            <div class="metric-icon">📝</div>
-            <div class="metric-number" id="metricChars">0</div>
-            <div class="metric-title">Characters Processed</div>
-            <div class="metric-trend">↑ Session total</div>
-            <canvas id="charSparkline" style="width:100%;height:40px;margin-top:0.5rem;"></canvas>
-          </div>
-
-          <div class="metric-card card-3d holo-border fade-in-up" data-accent="green">
-            <div class="metric-icon">🗺</div>
-            <div class="metric-number" id="metricLanguages">20</div>
-            <div class="metric-title">Languages Available</div>
-            <div class="metric-trend">✓ Azure Cognitive API</div>
-          </div>
-
-          <div class="metric-card card-3d holo-border fade-in-up" data-accent="gold">
-            <div class="metric-icon">⏱</div>
-            <div class="metric-number" id="metricAvgTime">—</div>
-            <div class="metric-title">Last Response Time</div>
-            <div class="metric-trend">↓ Real-time latency</div>
+        <div class="text-area-wrapper">
+          <div id="outputText" class="output-text">
+            <span class="output-placeholder">Translation appears here...</span>
           </div>
         </div>
-
-        <!-- ─── TRANSLATOR PANEL ─── -->
-        <div class="translator-section fade-in-up hex-bg">
-
-          <!-- SOURCE PANE -->
-          <div class="translator-pane">
-            <div class="pane-header">
-              <div class="lang-selector" id="sourceLangBtn">
-                <span class="lang-flag">🔍</span>
-                <span class="lang-name">Auto-Detect</span>
-                <span class="lang-code">AUTO</span>
-                <span style="margin-left:auto; color:var(--text-muted); font-size:12px;">▾</span>
-              </div>
-              <div class="lang-dropdown" id="sourceLangDropdown"></div>
-
-              <div class="pane-actions">
-                <button class="action-btn" id="copySourceBtn" data-tooltip="Copy source">⧉</button>
-                <button class="action-btn" id="clearSourceBtn" data-tooltip="Clear">✕</button>
-              </div>
-            </div>
-
-            <!-- Detected language indicator -->
-            <div class="detected-lang" id="detectedLang">
-              <span class="detected-dot"></span>
-              <span id="detectedText">Detecting language...</span>
-            </div>
-
-            <div class="text-area-wrapper">
-              <textarea
-                id="sourceInput"
-                class="translator-input"
-                placeholder="Type or paste text to translate...  (Ctrl+Enter to translate)"
-                maxlength="5000"
-              ></textarea>
-              <span class="char-counter" id="charCounter">0 / 5000</span>
-            </div>
+        <div class="confidence-section">
+          <span class="confidence-label">Confidence</span>
+          <div class="confidence-bar-track">
+            <div class="confidence-bar-fill" id="confidenceBar" style="width:0%"></div>
           </div>
+          <span class="confidence-value" id="confidenceValue">0%</span>
+        </div>
+      </div>
+    </div>
 
-          <!-- MIDDLE CONTROLS -->
-          <div class="translator-middle">
-            <button class="swap-btn" id="swapBtn" data-tooltip="Swap languages" title="Swap">⇄</button>
-            <button class="translate-btn ripple-btn" id="translateBtn" data-tooltip="Translate (Ctrl+Enter)" title="Translate">⚡</button>
-          </div>
-
-          <!-- TARGET PANE -->
-          <div class="translator-pane">
-            <div class="pane-header">
-              <div class="lang-selector" id="targetLangBtn">
-                <span class="lang-flag">🇮🇳</span>
-                <span class="lang-name">Hindi</span>
-                <span class="lang-code">HI</span>
-                <span style="margin-left:auto; color:var(--text-muted); font-size:12px;">▾</span>
-              </div>
-              <div class="lang-dropdown" id="targetLangDropdown"></div>
-
-              <div class="pane-actions">
-                <button class="action-btn" id="copyOutputBtn" data-tooltip="Copy translation">⧉</button>
-                <button class="action-btn" id="speakOutputBtn" data-tooltip="Text-to-Speech">🔊</button>
-              </div>
-            </div>
-
-            <div class="text-area-wrapper">
-              <div id="outputText" class="output-text">
-                <span class="output-placeholder">Translation appears here...</span>
-              </div>
-            </div>
-
-            <!-- Confidence -->
-            <div class="confidence-section">
-              <span class="confidence-label">Confidence</span>
-              <div class="confidence-bar-track">
-                <div class="confidence-bar-fill" id="confidenceBar" style="width:0%"></div>
-              </div>
-              <span class="confidence-value" id="confidenceValue">0%</span>
+    <!-- BOTTOM ROW -->
+    <div class="bottom-row">
+      <div class="panel fade-in-up">
+        <div class="panel-header">
+          <span class="panel-title">Translation History</span>
+          <span class="panel-badge" id="historyBadge">0 entries</span>
+        </div>
+        <div class="panel-body">
+          <div class="history-list" id="historyList">
+            <div style="color:var(--text-muted);font-size:0.8rem;padding:0.5rem;text-align:center;">
+              No translations yet. Start translating!
             </div>
           </div>
         </div>
+      </div>
 
-        <!-- ─── BOTTOM ROW ─── -->
-        <div class="bottom-row">
-
-          <!-- HISTORY PANEL -->
-          <div class="panel fade-in-up">
-            <div class="panel-header">
-              <span class="panel-title">Translation History</span>
-              <span class="panel-badge" id="historyBadge">0 entries</span>
-            </div>
-            <div class="panel-body">
-              <div class="history-list" id="historyList">
-                <div style="color:var(--text-muted);font-size:0.8rem;padding:0.5rem;text-align:center;">
-                  No translations yet. Start translating!
-                </div>
-              </div>
-            </div>
+      <div class="panel fade-in-up">
+        <div class="panel-header">
+          <span class="panel-title">Language Analytics</span>
+          <span class="panel-badge">Live</span>
+        </div>
+        <div class="panel-body" style="display:grid;grid-template-columns:1fr 140px;gap:1rem;align-items:start;">
+          <div class="lang-stats" id="langStats">
+            <div style="color:var(--text-muted);font-size:0.8rem;">Language usage appears after translations</div>
           </div>
-
-          <!-- ANALYTICS PANEL -->
-          <div class="panel fade-in-up">
-            <div class="panel-header">
-              <span class="panel-title">Language Analytics</span>
-              <span class="panel-badge">Live</span>
-            </div>
-            <div class="panel-body" style="display:grid; grid-template-columns:1fr 140px; gap:1rem; align-items:start;">
-              <div class="lang-stats" id="langStats">
-                <div style="color:var(--text-muted);font-size:0.8rem;">Language usage appears after translations</div>
-              </div>
-
-              <div style="display:flex; flex-direction:column; align-items:center; gap:0.8rem;">
-                <canvas id="langDonut" style="width:130px; height:130px;"></canvas>
-                <div style="font-family:var(--font-mono); font-size:0.65rem; color:var(--text-muted); text-align:center; letter-spacing:1px;">DISTRIBUTION</div>
-              </div>
-            </div>
-
-            <!-- Weekly Bar -->
-            <div style="padding:0 1.5rem 1.2rem;">
-              <div style="font-family:var(--font-mono); font-size:0.65rem; color:var(--text-muted); letter-spacing:2px; text-transform:uppercase; margin-bottom:0.6rem;">Weekly Activity</div>
-              <canvas id="weeklyBar" style="width:100%; height:60px;"></canvas>
-            </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:0.8rem;">
+            <canvas id="langDonut" style="width:130px;height:130px;"></canvas>
+            <div style="font-family:var(--font-mono);font-size:0.65rem;color:var(--text-muted);text-align:center;letter-spacing:1px;">DISTRIBUTION</div>
           </div>
         </div>
+        <div style="padding:0 1.5rem 1.2rem;">
+          <div style="font-family:var(--font-mono);font-size:0.65rem;color:var(--text-muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:0.6rem;">Weekly Activity</div>
+          <canvas id="weeklyBar" style="width:100%;height:60px;"></canvas>
+        </div>
+      </div>
+    </div>
 
-        <!-- ─── GLOBE + QUICK TRANSLATE PANEL ─── -->
-        <div style="display:grid; grid-template-columns:280px 1fr; gap:1.5rem;">
-
-          <!-- Globe Widget -->
-          <div class="panel fade-in-up">
-            <div class="panel-header">
-              <span class="panel-title">Global Reach</span>
-            </div>
-            <div class="panel-body" style="padding:0;">
-              <div class="globe-container">
-                <div class="globe float-anim">
-                  <div class="globe-sphere">
-                    <div class="globe-dot"></div>
-                    <div class="globe-dot"></div>
-                    <div class="globe-dot"></div>
-                    <div class="globe-dot"></div>
-                    <div class="globe-dot"></div>
-                    <div class="globe-arc"></div>
-                  </div>
-                  <div class="globe-ring"></div>
-                  <div class="globe-ring-2"></div>
-                </div>
+    <!-- GLOBE + QUICK TRANSLATE -->
+    <div style="display:grid;grid-template-columns:280px 1fr;gap:1.5rem;">
+      <div class="panel fade-in-up">
+        <div class="panel-header"><span class="panel-title">Global Reach</span></div>
+        <div class="panel-body" style="padding:0;">
+          <div class="globe-container">
+            <div class="globe float-anim">
+              <div class="globe-sphere">
+                <div class="globe-dot"></div><div class="globe-dot"></div>
+                <div class="globe-dot"></div><div class="globe-dot"></div>
+                <div class="globe-dot"></div><div class="globe-arc"></div>
               </div>
-              <div style="padding:0 1.2rem 1.2rem; text-align:center;">
-                <div style="font-family:var(--font-display); font-size:0.7rem; color:var(--neon-cyan); letter-spacing:2px;">20 LANGUAGES</div>
-                <div style="font-family:var(--font-body); font-size:0.78rem; color:var(--text-muted); margin-top:4px;">Azure Cognitive Services</div>
-              </div>
+              <div class="globe-ring"></div>
+              <div class="globe-ring-2"></div>
             </div>
           </div>
-
-          <!-- Quick Language Shortcuts -->
-          <div class="panel fade-in-up">
-            <div class="panel-header">
-              <span class="panel-title">Quick Translate</span>
-              <span class="panel-badge">One-Click</span>
-            </div>
-            <div class="panel-body">
-              <div style="display:grid; grid-template-columns:repeat(5, 1fr); gap:0.8rem;">
-                <!-- Quick lang buttons -->
-                <script>
-                  document.addEventListener('DOMContentLoaded', () => {
-                    const quick = document.getElementById('quickLangs');
-                    if (!quick) return;
-                    AZURE_CONFIG.supportedLanguages.forEach(lang => {
-                      const btn = document.createElement('button');
-                      btn.className = 'quick-lang-btn';
-                      btn.innerHTML = `<span style="font-size:1.6rem">${lang.flag}</span><span style="font-size:0.7rem;font-family:var(--font-mono);color:var(--text-secondary)">${lang.name.split(' ')[0]}</span>`;
-                      btn.onclick = () => {
-                        app.targetLang = lang;
-                        app.updateLangButtons();
-                        app.doTranslate();
-                      };
-                      quick.appendChild(btn);
-                    });
-                  });
-                </script>
-              </div>
-              <div id="quickLangs" style="display:grid; grid-template-columns:repeat(5, 1fr); gap:0.7rem;"></div>
-            </div>
+          <div style="padding:0 1.2rem 1.2rem;text-align:center;">
+            <div style="font-family:var(--font-display);font-size:0.7rem;color:var(--neon-cyan);letter-spacing:2px;">20 LANGUAGES</div>
+            <div style="font-family:var(--font-body);font-size:0.78rem;color:var(--text-muted);margin-top:4px;">Azure Cognitive Services</div>
           </div>
         </div>
+      </div>
 
-      </main><!-- /main-content -->
-
-      <!-- ── STATUS BAR ── -->
-      <footer class="status-bar">
-        <div class="status-item">
-          <span class="status-dot" id="statusDot"></span>
-          <span id="statusText">Connecting to Azure...</span>
+      <div class="panel fade-in-up">
+        <div class="panel-header">
+          <span class="panel-title">Quick Translate</span>
+          <span class="panel-badge">One-Click</span>
         </div>
-        <div class="status-item">⚡ Azure Cognitive Services Translator v3.0</div>
-        <div class="status-item">🔒 TLS Encrypted</div>
-        <div class="status-item">Ctrl+Enter to Translate</div>
-        <div class="status-item" style="margin-left:auto; font-size:0.6rem; color:var(--text-muted);">
-          Built with Azure Cognitive Services
+        <div class="panel-body">
+          <div id="quickLangs" style="display:grid;grid-template-columns:repeat(5,1fr);gap:0.7rem;"></div>
         </div>
-      </footer>
-    </div><!-- /#app -->
+      </div>
+    </div>
 
-    <!-- ══════════════════════════════════════
-         QUICK LANG BUTTON STYLES (inline)
-    ═════════════════════════════════════ -->
-    <style>
-      .quick-lang-btn {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 4px;
-        padding: 0.7rem 0.4rem;
-        background: var(--bg-deep);
-        border: 1px solid var(--border-dim);
-        border-radius: var(--radius-md);
-        cursor: pointer;
-        transition: var(--transition);
-        color: var(--text-primary);
+  </main>
+
+  <!-- STATUS BAR -->
+  <footer class="status-bar">
+    <div class="status-item">
+      <span class="status-dot" id="statusDot"></span>
+      <span id="statusText">Connecting...</span>
+    </div>
+    <div class="status-item">⚡ Azure Cognitive Services v3.0</div>
+    <div class="status-item">🔒 TLS Encrypted</div>
+    <div class="status-item">Ctrl+Enter to Translate</div>
+    <div class="status-item" style="margin-left:auto;font-size:0.6rem;color:var(--text-muted);">
+      Key nahi hai? ⚙ Settings mein daalo
+    </div>
+  </footer>
+</div>
+
+<!-- ══ SCRIPTS ══════════════════════════════════════════ -->
+<script src="config/azure-config.js"></script>
+<script src="js/particles.js"></script>
+<script src="js/translator.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/app.js"></script>
+
+<script>
+  // ── QUICK LANG BUTTONS ────────────────────────────────
+  document.addEventListener("DOMContentLoaded", () => {
+    const container = document.getElementById("quickLangs");
+    if (!container) return;
+    AZURE_CONFIG.supportedLanguages.forEach(lang => {
+      const btn = document.createElement("button");
+      btn.className = "quick-lang-btn";
+      btn.innerHTML = `<span style="font-size:1.6rem">${lang.flag}</span><span style="font-size:0.7rem;font-family:var(--font-mono);color:var(--text-secondary)">${lang.name.split(" ")[0]}</span>`;
+      btn.onclick = () => { app.targetLang = lang; app.updateLangButtons(); app.doTranslate(); };
+      container.appendChild(btn);
+    });
+
+    // History badge sync
+    const _orig = TranslatorDashboard.prototype.renderHistory;
+    TranslatorDashboard.prototype.renderHistory = function() {
+      _orig.call(this);
+      const badge = document.getElementById("historyBadge");
+      if (badge) badge.textContent = this.history.length + " entries";
+    };
+
+    // Auto-open settings if no key saved
+    if (!localStorage.getItem("azure_key")) {
+      setTimeout(() => openSettings(), 800);
+    }
+  });
+
+  // ── SETTINGS MODAL ───────────────────────────────────
+  function openSettings() {
+    const modal = document.getElementById("settingsModal");
+    document.getElementById("inputKey").value    = localStorage.getItem("azure_key")    || "";
+    document.getElementById("inputRegion").value = localStorage.getItem("azure_region") || "eastasia";
+    document.getElementById("modalStatus").className = "modal-status";
+    modal.classList.add("open");
+  }
+
+  function closeSettings() {
+    document.getElementById("settingsModal").classList.remove("open");
+  }
+
+  function saveSettings() {
+    const key    = document.getElementById("inputKey").value.trim();
+    const region = document.getElementById("inputRegion").value.trim();
+    if (!key)    { showModalStatus("Key khali hai!", "error"); return; }
+    if (!region) { showModalStatus("Region khali hai!", "error"); return; }
+
+    localStorage.setItem("azure_key", key);
+    localStorage.setItem("azure_region", region);
+
+    // Config update karo
+    AZURE_CONFIG.translatorKey    = key;
+    AZURE_CONFIG.translatorRegion = region;
+
+    showModalStatus("✓ Saved! Testing...", "loading");
+    testConnection(true);
+  }
+
+  async function testConnection(autoClose = false) {
+    const key    = document.getElementById("inputKey").value.trim();
+    const region = document.getElementById("inputRegion").value.trim();
+
+    if (!key || !region) { showModalStatus("Key aur Region dono daalo!", "error"); return; }
+
+    showModalStatus("⏳ Testing connection...", "loading");
+
+    try {
+      const res = await fetch("/api/translate?api-version=3.0&to=hi", {
+        method: "POST",
+        headers: {
+          "Content-Type":   "application/json",
+          "X-Azure-Key":    key,
+          "X-Azure-Region": region,
+        },
+        body: JSON.stringify([{ text: "Hello" }]),
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data[0]?.translations?.[0]?.text) {
+        showModalStatus(`✓ Connected! Test: "${data[0].translations[0].text}"`, "success");
+        if (autoClose) setTimeout(closeSettings, 2000);
+      } else {
+        const msg = data?.error?.message || "Unknown error";
+        showModalStatus(`✗ ${res.status}: ${msg}`, "error");
       }
-      .quick-lang-btn:hover {
-        border-color: var(--neon-cyan);
-        background: var(--bg-hover);
-        transform: translateY(-3px);
-        box-shadow: var(--shadow-cyan);
-      }
-    </style>
+    } catch (e) {
+      showModalStatus("✗ Proxy server nahi chal raha! Terminal mein: node proxy-server.js", "error");
+    }
+  }
 
-    <!-- ══════════════════════════════════════
-         SCRIPTS (load order matters)
-    ═════════════════════════════════════ -->
-    <!-- 1. Config (must be first) -->
-    <script src="config/azure-config.js"></script>
+  function showModalStatus(msg, type) {
+    const el = document.getElementById("modalStatus");
+    el.textContent = msg;
+    el.className = "modal-status " + type;
+  }
 
-    <!-- 2. Core modules -->
-    <script src="js/particles.js"></script>
-    <script src="js/translator.js"></script>
-    <script src="js/charts.js"></script>
+  // Close modal on overlay click
+  document.getElementById("settingsModal").addEventListener("click", function(e) {
+    if (e.target === this) closeSettings();
+  });
+</script>
 
-    <!-- 3. App controller (last) -->
-    <script src="js/app.js"></script>
-
-    <!-- History badge sync -->
-    <script>
-      const _origRH = TranslatorDashboard.prototype.renderHistory;
-      TranslatorDashboard.prototype.renderHistory = function () {
-        _origRH.call(this);
-        const badge = document.getElementById('historyBadge');
-        if (badge) badge.textContent = this.history.length + ' entries';
-      };
-    </script>
-  </body>
+</body>
 </html>

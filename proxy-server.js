@@ -1,11 +1,10 @@
 // ============================================
-//  AZURE TRANSLATOR PROXY SERVER
-//  Run: node proxy-server.js
-//  Then open: http://localhost:3000
+//  AZURE TRANSLATOR — PROXY SERVER
+//  Supports 84-character Azure AI Foundry keys
 //
-//  Keys are NOT hardcoded here anymore.
-//  Frontend dashboard se key & region bheja jata hai
-//  X-Azure-Key aur X-Azure-Region headers mein.
+//  HOW TO RUN:
+//    node proxy-server.js
+//  Then open: http://localhost:3000
 // ============================================
 
 const http  = require("http");
@@ -14,13 +13,11 @@ const fs    = require("fs");
 const path  = require("path");
 const url   = require("url");
 
-// ── CONFIG ──────────────────────────────────
 const PORT       = 3000;
-const AZURE_HOST = "adity69.cognitiveservices.azure.com";
+const AZURE_HOST = "api.cognitive.microsofttranslator.com";
 
-// ── MIME TYPES ──────────────────────────────
 const MIME = {
-  ".html": "text/html",
+  ".html": "text/html; charset=utf-8",
   ".css":  "text/css",
   ".js":   "application/javascript",
   ".json": "application/json",
@@ -30,62 +27,60 @@ const MIME = {
   ".ico":  "image/x-icon",
 };
 
-// ── CORS HEADERS ────────────────────────────
 function setCORS(res) {
-  res.setHeader("Access-Control-Allow-Origin",  "*");
+  res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers",
-    "Content-Type, X-ClientTraceId, X-Azure-Key, X-Azure-Region, X-Azure-ResourceId");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, X-ClientTraceId, X-Azure-Key, X-Azure-Region");
 }
 
-// ── PROXY TO AZURE ──────────────────────────
 function proxyAzure(req, res, azurePath) {
-  const azureKey        = req.headers["x-azure-key"]        || "";
-  const azureRegion     = req.headers["x-azure-region"]     || "";
-  const azureResourceId = req.headers["x-azure-resourceid"] || "";
-
-  if (!azureKey || !azureRegion) {
-    setCORS(res);
-    res.writeHead(401, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({
-      error: {
-        code: "MissingCredentials",
-        message: "Azure API key aur region dashboard Settings mein enter karein (⚙ button)."
-      }
-    }));
-    return;
-  }
-
   let body = "";
-  req.on("data", (chunk) => (body += chunk));
+  req.on("data", chunk => (body += chunk));
   req.on("end", () => {
+    const azureKey    = (req.headers["x-azure-key"]    || "").trim();
+    const azureRegion = (req.headers["x-azure-region"] || "").trim();
 
-    // Build headers — Foundry (84-char) keys need ResourceId header
-    const forwardHeaders = {
-      "Ocp-Apim-Subscription-Key":        azureKey.trim(),
-      "Ocp-Apim-Subscription-Region":     azureRegion.trim(),
-      "Ocp-Apim-Subscription-ResourceId": "/subscriptions/03a1dcff-01e1-48e3-a54a-6802d4296c59/resourceGroups/Aditya_3150/providers/Microsoft.CognitiveServices/accounts/adity69",
-      "Content-Type":                     "application/json; charset=UTF-8",
-      "X-ClientTraceId":                  req.headers["x-clienttraceid"] || "",
-    };
+    if (!azureKey || !azureRegion) {
+      setCORS(res);
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: { code: 400, message: "X-Azure-Key aur X-Azure-Region headers missing hain" } }));
+      return;
+    }
 
+    // Azure AI Foundry (84-char keys) needs this endpoint format
     const options = {
       hostname: AZURE_HOST,
       path:     azurePath,
       method:   req.method,
-      headers:  forwardHeaders,
+      headers: {
+        "Ocp-Apim-Subscription-Key":    azureKey,
+        "Ocp-Apim-Subscription-Region": azureRegion,
+        "Content-Type": "application/json; charset=UTF-8",
+        "X-ClientTraceId": req.headers["x-clienttraceid"] || "",
+      },
     };
 
-    const azureReq = https.request(options, (azureRes) => {
-      setCORS(res);
-      res.writeHead(azureRes.statusCode, { "Content-Type": "application/json" });
-      azureRes.pipe(res);
+    console.log(`[PROXY → AZURE] ${req.method} ${azurePath.split("?")[0]}  region=${azureRegion}  key=${azureKey.substring(0,8)}...`);
+
+    const azureReq = https.request(options, azureRes => {
+      let responseBody = "";
+      azureRes.on("data", chunk => (responseBody += chunk));
+      azureRes.on("end", () => {
+        console.log(`[AZURE RESPONSE] ${azureRes.statusCode}`);
+        if (azureRes.statusCode !== 200) {
+          console.log(`[AZURE ERROR] ${responseBody}`);
+        }
+        setCORS(res);
+        res.writeHead(azureRes.statusCode, { "Content-Type": "application/json" });
+        res.end(responseBody);
+      });
     });
 
-    azureReq.on("error", (e) => {
-      console.error("Azure request error:", e.message);
-      res.writeHead(500);
-      res.end(JSON.stringify({ error: e.message }));
+    azureReq.on("error", e => {
+      console.error("[AZURE ERROR]", e.message);
+      setCORS(res);
+      res.writeHead(502, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: { code: 502, message: e.message } }));
     });
 
     if (body) azureReq.write(body);
@@ -93,19 +88,16 @@ function proxyAzure(req, res, azurePath) {
   });
 }
 
-// ── SERVE STATIC FILES ───────────────────────
 function serveStatic(req, res) {
-  let filePath = req.url === "/" ? "/index.html" : req.url;
-  filePath = filePath.split("?")[0];
-
+  let filePath = req.url === "/" ? "/index.html" : req.url.split("?")[0];
   const fullPath = path.join(process.cwd(), filePath);
-  const ext      = path.extname(fullPath);
-  const mime     = MIME[ext] || "text/plain";
+  const ext  = path.extname(fullPath).toLowerCase();
+  const mime = MIME[ext] || "text/plain";
 
   fs.readFile(fullPath, (err, data) => {
     if (err) {
-      res.writeHead(404);
-      res.end("Not found: " + filePath);
+      res.writeHead(404, { "Content-Type": "text/plain" });
+      res.end("404: " + filePath);
       return;
     }
     res.writeHead(200, { "Content-Type": mime });
@@ -113,12 +105,10 @@ function serveStatic(req, res) {
   });
 }
 
-// ── MAIN SERVER ──────────────────────────────
 const server = http.createServer((req, res) => {
   const parsed   = url.parse(req.url, true);
   const pathname = parsed.pathname;
 
-  // Preflight
   if (req.method === "OPTIONS") {
     setCORS(res);
     res.writeHead(204);
@@ -126,26 +116,20 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // Proxy API calls
+  // All /api/* calls go to Azure
   if (pathname.startsWith("/api/")) {
-    // Foundry endpoint needs /translator/text/v3.0/... path format
-    const apiPart = pathname.slice(5); // remove /api/
-    const azurePath = "/translator/text/v3.0/" + apiPart + (parsed.search || "");
-    console.log(`[PROXY] ${req.method} ${azurePath}`);
+    const azurePath = "/" + pathname.slice(5) + (parsed.search || "");
     proxyAzure(req, res, azurePath);
     return;
   }
 
-  // Static files
-  console.log(`[STATIC] ${pathname}`);
   serveStatic(req, res);
 });
 
 server.listen(PORT, () => {
-  console.log("╔══════════════════════════════════════════════╗");
-  console.log("║   Azure Translator Proxy Server              ║");
-  console.log(`║   Running at: http://localhost:${PORT}          ║`);
-  console.log("║   Keys: Enter from Dashboard ⚙ Settings      ║");
-  console.log("║   Press Ctrl+C to stop                       ║");
-  console.log("╚══════════════════════════════════════════════╝");
+  console.log("\n╔══════════════════════════════════════════╗");
+  console.log("║   Azure Translator — Proxy Server        ║");
+  console.log(`║   Open: http://localhost:${PORT}               ║`);
+  console.log("║   Ctrl+C to stop                         ║");
+  console.log("╚══════════════════════════════════════════╝\n");
 });

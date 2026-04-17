@@ -1,109 +1,73 @@
 /* ============================================
-   AZURE COGNITIVE TRANSLATOR SERVICE MODULE
-   Keys are passed dynamically via request headers
-   (read from localStorage, set via dashboard Settings)
+   AZURE TRANSLATOR MODULE
+   - Proxy ke zariye Azure ko call karta hai
+   - 84-character AI Foundry keys support karta hai
+   - Key X-Azure-Key header mein jaati hai
    ============================================ */
 
 class AzureTranslator {
   constructor(config) {
-    this.config   = config;
+    this.endpoint = config.translatorEndpoint; // "/api/"
     this.rateLimit = config.rateLimit;
 
-    this.useProxy  = true;
-    this.proxyBase = "/api";
-
-    // Request tracking
-    this.requestCount      = 0;
-    this.charCount         = 0;
+    this.requestCount = 0;
+    this.charCount = 0;
     this.requestTimestamps = [];
-    this.lastRequestTime   = null;
+    this.lastRequestTime = null;
   }
 
-  /* ── GET LIVE KEY & REGION from localStorage ── */
-  get key()    { return (localStorage.getItem("azure_key")    || "").trim(); }
-  get region() { return (localStorage.getItem("azure_region") || "").trim(); }
+  // Key aur region hamesha fresh localStorage se lo
+  get _key()    { return (localStorage.getItem("azure_key")    || "").trim(); }
+  get _region() { return (localStorage.getItem("azure_region") || "eastasia").trim(); }
 
-  /* ── BUILD URL ── */
-  _buildUrl(azurePath, queryString) {
-    if (this.useProxy) {
-      return `${this.proxyBase}/${azurePath}?${queryString}`;
-    }
-    return `${this.config.translatorEndpoint}${azurePath}?${queryString}`;
-  }
-
-  /* ── HEADERS: key & region always sent so proxy can forward them ── */
-  _headers(extra = {}) {
-    const h = {
-      "Content-Type":     "application/json; charset=UTF-8",
-      "X-ClientTraceId":  this._generateTraceId(),
-      // Proxy reads these and forwards as Ocp-Apim headers to Azure
-      "X-Azure-Key":      this.key,
-      "X-Azure-Region":   this.region,
+  // Har request mein ye headers lagate hain
+  _headers() {
+    return {
+      "Content-Type":      "application/json; charset=UTF-8",
+      "X-Azure-Key":       this._key,
+      "X-Azure-Region":    this._region,
+      "X-ClientTraceId":   this._traceId(),
     };
-    return Object.assign(h, extra);
   }
 
-  /* ── VALIDATE credentials before request ── */
-  _checkCredentials() {
-    if (!this.key || !this.region) {
-      throw new Error(
-        "Azure credentials missing! Dashboard mein ⚙ Settings button dabao aur Key + Region enter karo."
-      );
-    }
-  }
-
-  /* ── MAIN TRANSLATE METHOD ── */
+  /* ── TRANSLATE ── */
   async translate(text, targetLang, sourceLang = null) {
-    if (!text || !text.trim()) throw new Error("Input text is empty");
-    if (text.length > this.rateLimit.charactersPerRequest) {
-      throw new Error(`Text exceeds ${this.rateLimit.charactersPerRequest} character limit`);
-    }
-    this._checkCredentials();
+    if (!text?.trim()) throw new Error("Text khali hai");
+    if (text.length > this.rateLimit.charactersPerRequest)
+      throw new Error(`Text ${this.rateLimit.charactersPerRequest} characters se zyada hai`);
+    if (!this._key) throw new Error("Azure Key missing hai — Settings mein jaake key daalo ⚙");
 
     let qs = `api-version=3.0&to=${targetLang}`;
     if (sourceLang && sourceLang !== "auto") qs += `&from=${sourceLang}`;
 
-    const url = this._buildUrl("translate", qs);
+    const res = await fetch(`${this.endpoint}translate?${qs}`, {
+      method:  "POST",
+      headers: this._headers(),
+      body:    JSON.stringify([{ text }]),
+    }).catch(() => { throw new Error("Proxy server nahi chal raha! Terminal mein chalao: node proxy-server.js"); });
 
-    try {
-      const response = await fetch(url, {
-        method:  "POST",
-        headers: this._headers(),
-        body:    JSON.stringify([{ text }]),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(
-          `Azure API Error ${response.status}: ${errorData?.error?.message || response.statusText}`
-        );
-      }
-
-      const data = await response.json();
-      this._trackRequest(text.length);
-      return this._parseResponse(data);
-
-    } catch (error) {
-      if (error.name === "TypeError" && error.message.includes("fetch")) {
-        throw new Error("Proxy server nahi chal raha! Terminal mein chalao: node proxy-server.js");
-      }
-      throw error;
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(`Azure Error ${res.status}: ${err?.error?.message || res.statusText}`);
     }
+
+    const data = await res.json();
+    this._track(text.length);
+    return this._parse(data);
   }
 
   /* ── DETECT LANGUAGE ── */
   async detectLanguage(text) {
-    this._checkCredentials();
-    const url = this._buildUrl("detect", "api-version=3.0");
+    if (!this._key) return { language: "unknown", confidence: 0 };
 
-    const response = await fetch(url, {
+    const res = await fetch(`${this.endpoint}detect?api-version=3.0`, {
       method:  "POST",
       headers: this._headers(),
       body:    JSON.stringify([{ text: text.substring(0, 100) }]),
-    });
+    }).catch(() => { throw new Error("Proxy server nahi chal raha!"); });
 
-    if (!response.ok) throw new Error(`Detection failed: ${response.status}`);
-    const data = await response.json();
+    if (!res.ok) throw new Error(`Detect failed: ${res.status}`);
+    const data = await res.json();
 
     return {
       language:               data[0]?.language || "unknown",
@@ -112,77 +76,40 @@ class AzureTranslator {
     };
   }
 
-  /* ── TRANSLITERATE ── */
-  async transliterate(text, language, fromScript, toScript) {
-    this._checkCredentials();
-    const qs  = `api-version=3.0&language=${language}&fromScript=${fromScript}&toScript=${toScript}`;
-    const url = this._buildUrl("transliterate", qs);
-
-    const response = await fetch(url, {
-      method:  "POST",
-      headers: this._headers(),
-      body:    JSON.stringify([{ text }]),
-    });
-
-    if (!response.ok) throw new Error(`Transliteration failed: ${response.status}`);
-    const data = await response.json();
-    return data[0]?.text || text;
-  }
-
-  /* ── FETCH SUPPORTED LANGUAGES ── */
-  async getSupportedLanguages() {
-    const url = this._buildUrl("languages", "api-version=3.0&scope=translation");
-
-    const response = await fetch(url, {
-      headers: { "Content-Type": "application/json" },
-    });
-
-    if (!response.ok) throw new Error(`Failed to fetch languages: ${response.status}`);
-    const data = await response.json();
-
-    return Object.entries(data.translation).map(([code, info]) => ({
-      code,
-      name:       info.name,
-      nativeName: info.nativeName,
-      dir:        info.dir,
-    }));
-  }
-
   /* ── PARSE RESPONSE ── */
-  _parseResponse(data) {
-    if (!data || !data[0]) throw new Error("Invalid API response");
-    const result      = data[0];
-    const translation = result.translations?.[0];
-    if (!translation) throw new Error("No translation in response");
+  _parse(data) {
+    if (!data?.[0]) throw new Error("Invalid API response");
+    const t = data[0].translations?.[0];
+    if (!t) throw new Error("Translation nahi mili response mein");
 
     return {
-      translatedText:   translation.text,
-      targetLanguage:   translation.to,
-      sourceLanguage:   result.detectedLanguage?.language || null,
-      sourceConfidence: result.detectedLanguage?.score
-        ? Math.round(result.detectedLanguage.score * 100)
-        : null,
+      translatedText:   t.text,
+      targetLanguage:   t.to,
+      sourceLanguage:   data[0].detectedLanguage?.language || null,
+      sourceConfidence: data[0].detectedLanguage?.score
+                          ? Math.round(data[0].detectedLanguage.score * 100)
+                          : null,
       timestamp: new Date().toISOString(),
     };
   }
 
-  /* ── TRACK USAGE ── */
-  _trackRequest(charCount) {
+  /* ── UTILS ── */
+  _track(chars) {
     const now = Date.now();
     this.requestCount++;
-    this.charCount += charCount;
+    this.charCount += chars;
     this.requestTimestamps.push(now);
-    this.lastRequestTime   = now;
-    this.requestTimestamps = this.requestTimestamps.filter((t) => now - t < 60000);
+    this.lastRequestTime = now;
+    this.requestTimestamps = this.requestTimestamps.filter(t => now - t < 60000);
   }
 
   isRateLimited() {
-    const now = Date.now();
-    return this.requestTimestamps.filter((t) => now - t < 60000).length >= this.rateLimit.requestsPerMinute;
+    return this.requestTimestamps.filter(t => Date.now() - t < 60000).length
+           >= this.rateLimit.requestsPerMinute;
   }
 
-  _generateTraceId() {
-    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+  _traceId() {
+    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, c => {
       const r = (Math.random() * 16) | 0;
       return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
     });
@@ -192,14 +119,12 @@ class AzureTranslator {
     return {
       totalRequests:      this.requestCount,
       totalChars:         this.charCount,
-      requestsLastMinute: this.requestTimestamps.filter((t) => Date.now() - t < 60000).length,
+      requestsLastMinute: this.requestTimestamps.filter(t => Date.now() - t < 60000).length,
       lastRequest:        this.lastRequestTime
-        ? new Date(this.lastRequestTime).toLocaleTimeString()
-        : "N/A",
+                            ? new Date(this.lastRequestTime).toLocaleTimeString()
+                            : "N/A",
     };
   }
 }
 
-if (typeof module !== "undefined") {
-  module.exports = AzureTranslator;
-}
+if (typeof module !== "undefined") module.exports = AzureTranslator;

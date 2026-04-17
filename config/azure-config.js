@@ -1,16 +1,19 @@
 // ============================================
-//   AZURE COGNITIVE SERVICES - CONFIGURATION
-//   Keys are stored in localStorage (entered via dashboard Settings)
-//   No need to hardcode anything here!
+//   AZURE COGNITIVE SERVICES — CONFIG
+//   Key aur Region localStorage se aata hai
+//   Pehli baar Settings modal se set karo
 // ============================================
 
 const AZURE_CONFIG = {
-  // Keys are loaded from localStorage — set via the ⚙ Settings button on dashboard
-  get translatorKey()      { return localStorage.getItem("azure_key")    || ""; },
-  get translatorRegion()   { return localStorage.getItem("azure_region") || ""; },
-  translatorEndpoint: "https://api.cognitive.microsofttranslator.com/",
+  // In values ko Settings modal se set karo (page pe gear icon)
+  // Ya seedha yahan apni key paste karo:
+  translatorKey:      localStorage.getItem("azure_key")    || "",
+  translatorRegion:   localStorage.getItem("azure_region") || "eastasia",
 
-  // Supported Language List
+  // Proxy endpoint — proxy-server.js ke zariye Azure tak jaata hai
+  // Direct Azure endpoint mat use karo — CORS block karega
+  translatorEndpoint: "/api/",
+
   supportedLanguages: [
     { code: "en",      name: "English",              flag: "🇺🇸" },
     { code: "hi",      name: "Hindi",                flag: "🇮🇳" },
@@ -34,24 +37,19 @@ const AZURE_CONFIG = {
     { code: "th",      name: "Thai",                 flag: "🇹🇭" },
   ],
 
-  // Dashboard Settings
   dashboard: {
-    maxHistoryItems: 50,
-    autoDetectLanguage: true,
-    defaultSourceLang: "auto",
-    defaultTargetLang: "hi",
-    animationsEnabled: true,
-    particlesEnabled: true,
-    theme: "cyber-dark",
+    maxHistoryItems:     50,
+    autoDetectLanguage:  true,
+    defaultSourceLang:   "auto",
+    defaultTargetLang:   "hi",
+    animationsEnabled:   true,
+    particlesEnabled:    true,
   },
 
-  // Rate Limiting
   rateLimit: {
-    requestsPerMinute: 60,
+    requestsPerMinute:    60,
     charactersPerRequest: 5000,
   },
 };
 
-if (typeof module !== "undefined") {
-  module.exports = AZURE_CONFIG;
-}
+if (typeof module !== "undefined") module.exports = AZURE_CONFIG;
